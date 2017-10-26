@@ -1,32 +1,27 @@
 {
-  "name": "iobroker.broadlink2",
-  "version": "1.8.0",
-  "description": "ioBroker Broadlink2 Adapter",
+  "name": "iobroker.systeminfo",
+  "version": "0.0.1",
+  "description": "ioBroker systeminfo Adapter",
   "author": "Frank Joke <frankjoke@hotmail.com>",
-  "contributors": [
-    "Reinhard Hiebl <reinhard@hieblmedia.com>"
-  ],
-  "homepage": "https://github.com/frankjoke/ioBroker.broadlink2",
+  "contributors": [],
+  "homepage": "https://github.com/frankjoke/ioBroker.systeminfo",
   "license": "MIT",
   "keywords": [
     "ioBroker",
-    "broadlink",
-    "RM3",
-    "A1",
-    "SP1",
-    "SP2",
-    "SP3",
-    "Smart Home",
-    "home automation"
+    "System",
+    "Web",
+    "Files"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/frankjoke/ioBroker.broadlink2.git"
+    "url": "git+https://github.com/frankjoke/ioBroker.systeminfo.git"
   },
   "engines": {
     "node": ">=4.3.0"
   },
-  "dependencies": {},
+  "dependencies": {
+    "systeminformation": "^3.32.1"
+  },
   "devDependencies": {
     "grunt": "^1.0.1",
     "grunt-replace": "^1.0.1",
@@ -36,12 +31,12 @@
     "mocha": "^3.5.3",
     "chai": "^4.1.2"
   },
-  "main": "broadlink2.js",
+  "main": "systeminfo.js",
   "scripts": {
     "test": "node node_modules/mocha/bin/mocha"
   },
   "bugs": {
-    "url": "https://github.com/frankjoke/ioBroker.broadlink2/issues"
+    "url": "https://github.com/frankjoke/ioBroker.systeminfo/issues"
   },
   "directories": {
     "doc": "doc",

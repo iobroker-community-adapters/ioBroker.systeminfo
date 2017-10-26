@@ -1,5 +1,5 @@
 /**
- *      iobroker MyAdapter class V1.1.0 from broadlink2
+ *      iobroker MyAdapter class V1.1.0 from systeminfo
  *      (c) 2016- <frankjoke@hotmail.com>
  *      MIT License
  */

@@ -1,8 +1,8 @@
 {
     "common": {
-        "name": "broadlink2",
-        "version": "1.8.0",
-        "title": "Broadlink2 (RM++, SP++, A1) Adapter for multiple W-Lan devices",
+        "name": "systeminfo",
+        "version": "0.0.1",
+        "title": "Systeminfo Adapter to get data from systems",
         "news": {
             "1.8.0": {
                 "en": "Added states which you can set with on/off or level values",
@@ -16,66 +16,103 @@
                 "en": "Adapter handles RM, SP and A1 devices and can rescan them, it should be able to learn RF codes frr RM-Plus devices",
                 "de": "Adapter verarbeitet RM-, SP- und A1-Geräte und sollte auch Funkbefehle von RM-Plus lernen können"
             },
-            "1.1.1": {
-                "en": "Adapter handles RM, SP and A1 devices and can rescan them",
-                "de": "Adapter verarbeitet RM-, SP- und A1-Geräte"
+            "0.0.1": {
+                "en": "Adapter handles normal system info mainly for Linux",
+                "de": "Adapter verarbeitet hauptsächlich Linux-Systeminformation"
             }
         },
         "desc": {
-            "en": "Broadlink2 Adapter for multiple BroadLink wireless devices (RM++, SP++, A1)",
-            "de": "Broadlink2 Adapter für verschiedene Broadlink WLan-Geräte (RM++, SP++, A1)"
+            "en": "Adapter get (or set) data from systems or the web",
+            "de": "Adapter kann Daten vom System oder vom Web lesen"
         },
         "platform": "Javascript/Node.js",
         "mode": "daemon",
-        "icon": "broadlink.png",
+        "icon": "systeminfo.png",
         "enabled": true,
-        "messagebox": true,
-        "subscribe": "messagebox",
-        "extIcon": "https://raw.githubusercontent.com/frankjoke/ioBroker.broadlink2/master/admin/broadlink.png",
+        "messagebox": false,
+        "subscribe": "messagebox_",
+        "extIcon": "https://raw.githubusercontent.com/frankjoke/ioBroker.systeminfo/master/admin/broadlink.png",
         "keywords": [
             "Broadlink",
-            "W-Lan",
-            "IR/RF",
-            "Remote",
-            "Switch",
-            "A1",
-            "RM2",
-            "RM3",
-            "SP1",
-            "SP2"
-        ],
-        "readme": "https://github.com/frankjoke/ioBroker.broadlink2/blob/master/README.md",
+            "System",
+            "Web",
+            "Files"
+                ],
+        "readme": "https://github.com/frankjoke/ioBroker.systeminfo/blob/master/README.md",
         "loglevel": "info",
-        "type": "iot-systems",
+        "type": "hardware",
         "authors": [
             "Frank Joke <frankjoke@hotmail.com>"
         ]
     },
     "native": {
-        "ip": ".fritz.box",
-        "scenes": [
+        "poll": "30",
+        "pollfast": "2",
+        "pollslow": "300",
+        "startup": "gpio export 1 output",
+        "items": [
             {
-                "name": "Fernsehen",
-                "scene": "FernseherAn, FernsehLichtAn, 500, TVWZKanal=12"
-            }
-        ],
-        "switches": [
-            {
-                "name": "Steckdose_A",
-                "on": "Steckdose_A_Ein",
-                "off:": "Steckdose_A_Aus"
+                "name": "System.SOC_Temp",
+                "type": "file",
+                "source": "/sys/class/thermal/thermal_zone0/temp",
+                "regexp": "",
+                "conv": "parseFloat($0)",
+                "role": "value.temperature",
+                "write": "",
+                "poll": "normal"
             },
             {
-                "name": "Lüfter_A",
-                "on": "Lüfter_A_Aus, Lüfter_A_Mittel, Lüfter_A_Stark"
+                "name": "System.(Memory_total, Memory_used, Memory_free, Memory_available)",
+                "type": "exec",
+                "source": "free -k",
+                "regexp": "^Mem \\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\.+(\\d+)$",
+                "conv": "[parseInt($1), parseInt($2), parseInt($3), parseInt($4)]",
+                "role": "intvalue",
+                "write": "",
+                "poll": "normal"
             },
             {
-                "name": "TVWZKanal",
-                "on": "TVWZK0, TVWZK1, TVWZK2, TVWZK3, TVWZK4, TVWZK5, TVWZK6, TVWZK7, TVWZK8, TVWZK9",
-                "off": "+"
+                "name": "System.(Swap.total, Swap.used, Swap.free)",
+                "type": "exec",
+                "source": "free -k",
+                "regexp": "^Swap \\s+(\\d+)\\s+(\\d+)\\.+(\\d+)$",
+                "conv": "[parseInt($1), parseInt($2), parseInt($3)]",
+                "role": "intvalue",
+                "write": "",
+                "poll": "normal"
+            },
+            {
+                "name": "GPIO.0",
+                "type": "exec",
+                "source": "gpio read 0",
+                "regexp": "",
+                "conv": "A.parseLogic($0)",
+                "role": "switch",
+                "write": "gpio write 0 $($0 ? 1 : 0)",
+                "poll": "fast"
+            },
+            {
+                "name": "System.Led_Green",
+                "type": "sys",
+                "source": "/sys/class/leds/green_led/brightness",
+                "regexp": "",
+                "conv": "A.parseLogic($0)",
+                "role": "switch",
+                "write": "sys",
+                "poll": "fast"
+            },
+            {
+                "name": "System.Led_Red",
+                "type": "sys",
+                "source": "/sys/class/leds/red_led/brightness",
+                "regexp": "",
+                "conv": "A.parseLogic($0)",
+                "role": "switch",
+                "write": "sys",
+                "poll": "fast"
             }
-        ],
-        "poll": "30"
+        ]
+
     },
     "objects": [],
     "config": {
