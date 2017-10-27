@@ -46,10 +46,10 @@
         ]
     },
     "native": {
-        "poll": "30",
+        "poll": "10",
         "pollfast": "2",
         "pollslow": "300",
-        "startup": "gpio export 1 output",
+        "startup": "gpio mode 1 output",
         "items": [
             {
                 "name": "System.SOC_Temp",
@@ -57,7 +57,7 @@
                 "source": "/sys/class/thermal/thermal_zone0/temp",
                 "regexp": "",
                 "conv": "parseFloat($0)",
-                "role": "value.temperature",
+                "role": "value.temperature/°C",
                 "write": "",
                 "poll": "normal"
             },
@@ -67,7 +67,7 @@
                 "source": "free -k",
                 "regexp": "^Mem \\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\.+(\\d+)$",
                 "conv": "[parseInt($1), parseInt($2), parseInt($3), parseInt($4)]",
-                "role": "intvalue",
+                "role": "intvalue/kb",
                 "write": "",
                 "poll": "normal"
             },
@@ -77,14 +77,14 @@
                 "source": "free -k",
                 "regexp": "^Swap \\s+(\\d+)\\s+(\\d+)\\.+(\\d+)$",
                 "conv": "[parseInt($1), parseInt($2), parseInt($3)]",
-                "role": "intvalue",
+                "role": "intvalue/kb",
                 "write": "",
                 "poll": "normal"
             },
             {
                 "name": "GPIO.0",
                 "type": "exec",
-                "source": "gpio read 0",
+                "source": "gpio read 1",
                 "regexp": "",
                 "conv": "A.parseLogic($0)",
                 "role": "switch",
@@ -98,7 +98,7 @@
                 "regexp": "",
                 "conv": "A.parseLogic($0)",
                 "role": "switch",
-                "write": "sys",
+                "write": "true",
                 "poll": "fast"
             },
             {
@@ -108,7 +108,7 @@
                 "regexp": "",
                 "conv": "A.parseLogic($0)",
                 "role": "switch",
-                "write": "sys",
+                "write": "true",
                 "poll": "fast"
             }
         ]

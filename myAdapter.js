@@ -389,7 +389,7 @@ class MyAdapter {
     }
 
     static exec(command) {
-        assert(typeof fn === 'string', 'exec (fn) error: fn is not a string!');
+        assert(this.T(command,""), 'exec (fn) error: fn is not a string!');
         const istest = command.startsWith('!');
         return new Promise((resolve, reject) => {
             exec(istest ? command.slice(1) : command, (error, stdout, stderr) => {

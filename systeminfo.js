@@ -7,32 +7,65 @@
 "use strict";
 const utils = require('./lib/utils'),
 	adapter = utils.adapter('systeminfo'),
-	dns = require('dns'),
+	//	dns = require('dns'),
 	assert = require('assert'),
 	A = require('./myAdapter');
 
-const scanList = {},
-	tempName = '.Temperature',
-	humName = '.Humidity',
-	lightName = '.Light',
-	airQualityName = '.AirQuality',
-	noiseName = '.Noise',
-	learnRf = 'RF',
-	learnIr = '',
-	learnName = '.Learn',
-	sendName = '.SendCode',
-	sceneName = 'SendScene',
-	scenesName = 'Scenes',
-	statesName = 'States',
+const list = {
+		normal: [],
+		fast: [],
+		slow: []
+	},
+	roleNames = ["intvalue", "switch", "boolean", "floatvalue", "value.temperature"],
+	roleRoles = ["value", "switch", "value", "value", "value.temperature"],
+	roleTypes = ["number", "boolean", "boolean", "number", "number"],
 	reIsEvalWrite = /\$\((.+)\)/,
-	reIsArgWrite = /\$0/g,
-	reIsCODE = /^CODE_[a-f0-9]{16}/,
-	defaultName = '>>>Rename learned ';
+	reIsArgWrite = /\$0/g;
 
-let currentDevice, adapterObjects, firstCreate, pollerr = 2,
-	states = {},poll=30, pollfast=2, pollslow=60;
+let adapterObjects, pollF, pollfastF, pollslowF,
+	poll = 30,
+	pollfast = 2,
+	pollslow = 60;
 
 A.init(adapter, main); // associate adapter and main with MyAdapter
+
+class Cache {
+	constructor(fun) { // neue Einträge werden mit dieser Funktion kreiert
+		assert(!fun || A.T(fun) === 'function', 'Cache arg need to be a function returning a promise!');
+		this._cache = {};
+		this._fun = fun;
+	}
+
+	get cache() {
+		return this._cache;
+	}
+	get fun() {
+		return this._fun;
+	}
+	set fun(newfun) {
+		assert(!newfun || A.T(newfun) === 'function', 'Cache arg need to be a function returning a promise!');
+		return (this._fun = newfun);
+	}
+
+	cacheItem(item, fun) {
+		let that = this;
+		assert(!fun || A.T(fun) === 'function', 'Cache arg need to be a function returning a promise!');
+		//        A.D(`looking for ${item} in ${A.O(this._cache)}`);
+		if (this._cache[item])
+			return Promise.resolve(this._cache[item]);
+		if (!fun)
+			fun = this._fun;
+		assert(A.T(fun) === 'function', `checkItem needs a function to fill cache!`);
+		return fun(item).then(res => (that._cache[item] = res), err => A.D(`checkitem error ${err} finding result for ${item}`, null));
+	}
+	clear() {
+		this._cache = {};
+	}
+	isCached(x) {
+		return this._cache[x];
+	}
+}
+
 /*
 A.objChange = function (obj) { //	This is needed for name changes
 	if (typeof obj === 'string' && obj.indexOf(learnedName) > 0)
@@ -152,62 +185,133 @@ function doPoll() {
 }
 
 */
+
+function doPoll(list) {
+	A.D(`I should poll ${A.O(list)} now!`);
+	const caches = {};
+	return A.seriesOf(list, item => {
+			if (!item.fun) return Promise.reject(`Undefined function in ${A.O(item)}`);
+			var ca = item.type + item.source;
+			if (!caches[ca])
+				caches[ca] = new Cache();
+			return caches[ca].cacheItem(ca, item.fun)
+				.then(res => 
+					item.regexp ? res.match(item.regexp) : [res] )
+				.then(A.D, A.W);
+		}, 1)
+		.catch(e => A.W(`Error ${e} in doPoll for ${A.O(list)}`));
+}
+
 function main() {
-	let notFound,doPoll,didFind;
-	A.I('Startup Systeminfo Adapter ' + A.ains);
+	function tint(str, def) {
+		if (str && !isNaN(parseInt(str)))
+			return parseInt(str);
+		return def || 0;
+	}
+
+	function createFunction(ni) {
+		switch (ni.type) {
+			case 'sys':
+				ni.fun = () => {
+					return A.readFile(ni.source);
+				};
+				break;
+			case 'exec':
+				ni.fun = () => A.exec(ni.source);
+				break;
+			case 'file':
+				ni.fun = () => {
+					return A.readFile(ni.source);
+				};
+				break;
+			case 'web':
+				ni.fun = () => {
+					return A.get(ni.source);
+				};
+				break;
+
+			default:
+				A.W(`Not implemented type ${ni.type}`);
+		}
+	}
+
+	A.I(`Startup Systeminfo Adapter ${A.ains}: ${A.O(adapter.config)}`);
 
 	if ((A.debug = adapter.config.startup.startsWith('debug!')))
 		adapter.config.startup = adapter.config.startup.slice(A.D(`Debug mode on!`, 6));
 
-	A.D('Config IP-Address end to remove: ' + adapter.config.ip);
-	A.seriesOf(adapter.config.scenes, scene =>
-			A.makeState({
-				id: scenesName + '.' + scene.name.trim(),
-				write: true,
-				role: 'button',
-				type: typeof true,
-				native: {
-					scene: scene.scene
-				}
-			}), 100)
-//		.then(() => genStates(adapter.config.switches))
-		.then(() => A.getObjectList({
+	poll = tint(adapter.config.poll, 10);
+	pollfast = tint(adapter.config.pollfast, 2);
+	pollslow = tint(adapter.config.poll, 300);
+
+	A.D(`Systeminfo will poll every ${poll}sec, pollfast every ${pollfast}sec and pollslow every ${pollslow}min.`);
+
+	for (let item of adapter.config.items) {
+		let ni = A.clone(item);
+		let ir = item.name.trim().match(/^(\S*)\s*(\(\s*(\S+)\s*(\,\s*\S+\s*)*\))?\s*(\S*)$/);
+		if (!ir)
+			return Promise.resolve(A.W(`Invalid item name in ${A.O(item)}`));
+		if (ir[2]) {
+			ni.id = A.trim(ir[2].slice(1,-1).split(',')).map(s => ir[1] + s + ir.slice(-1)[0]);
+		} else ni.id = ir[1]+ir.slice(-1)[0];
+		ni.write = ni.write && ni.write.trim();
+		ni.source = ni.source.trim();
+		ni.conv = ni.conv && ni.conv.trim();
+		ni.id = ni.name.trim();
+		let ra = A.trim(A.T(ni.role, "") ? ni.role.split('/') : 'value'),
+			unit = ra.length > 1 ? ra[1] : undefined,
+			rr = ra[0],
+			ri = roleNames.indexOf(rr),
+			role = ri >= 0 ? roleRoles[ri] : 'value',
+			type = ri >= 0 ? roleTypes[ri] : 'string',
+			opt = {
+				id: ni.id,
+				state: 'state',
+				write: item.write.trim().length > 0,
+				type: type,
+				role: role,
+				unit: unit,
+				native: {}
+			};
+
+		try {
+			ni.regexp = ni.regexp && ni.regexp.trim().length>0 ? new RegExp(ni.regexp.trim()) : null;
+		} catch (e) {
+			A.W(`Error ${e} in RegExp of ${A.O(ni)}`);
+			ni.regexp = null;
+		}
+		opt.native.si = A.clone(ni);
+		createFunction(ni);
+		ni.opt = opt;
+		list[ni.poll].push(ni);
+
+	}
+
+	A.D(`Systeminfo will use fast ${A.O(list.fast)}.`);
+	A.D(`Systeminfo will use normal ${A.O(list.normal)}.`);
+	A.D(`Systeminfo will use slow ${A.O(list.slow)}.`);
+
+	A.getObjectList({
 			startkey: A.ain,
 			endkey: A.ain + '\u9999'
-		}))
-		.then(res => adapterObjects = res.rows.length > 0 ? A.D(`Adapter has  ${res.rows.length} old states!`, adapterObjects = res.rows.map(x => x.doc)) : [])
-//		.then(() => didFind = Object.keys(scanList))
-		.then(() => A.seriesOf(adapterObjects.filter(x => x.native && x.native.host), dev => {
-			let id = dev.native.host.name; // dev._id.slice(A.ain.length);
-			if (!scanList[id] && !id.endsWith(learnName + learnRf) && !id.endsWith(learnName + learnIr)) {
-				let device = {
-					name: id,
-					fun: A.nop,
-					host: dev.native.host,
-					dummy: true,
-					checkRequest: 1,
-				};
-				A.W(`device ${id} not found, please rescan later again or delete it! It was: ${A.obToArray(device.host)}`);
-				scanList[id] = device;
-//				notFound.push(id);
-			}
-			return Promise.resolve(true);
-		}, 1))
-//		.then(() => doPoll())
-		.then(() => A.makeState({
-			id: sceneName,
-			write: true,
-			role: 'text',
-			type: typeof '',
-		}, ' ', true))
-		.then(() => {
-			const p = parseInt(adapter.config.poll);
-			if (p) {
-				setInterval(doPoll, p * 1000);
-				A.D(`Poll every ${p} secods.`);
-			}
 		})
-		.then(() => (A.I(`Adapter ${A.ains} started and found ${didFind.length} devices named '${didFind.join("', '")}'.`),
-			notFound.length > 0 ? A.I(`${notFound.length} were not found: ${notFound}`) : null), e => A.W(`Error in main: ${e}`))
+		.then(res =>
+			adapterObjects = res.rows.length > 0 ?
+			A.D(`Adapter has  ${res.rows.length} old states!`, adapterObjects = res.rows.map(x => x.doc)) : [])
+		//		.then(() => didFind = Object.keys(scanList))
+		.then(() => A.seriesOf(adapterObjects.filter(x => x && x.native && x.native.host), dev => {
+			let id = dev.native.host.name; // dev._id.slice(A.ain.length);
+			return Promise.resolve(id);
+		}, 1))
+		.then(() => {
+			if (list.normal.length > 0)
+				pollF = setInterval(doPoll, poll * 1000, list.normal);
+			if (list.fast.length > 0)
+				pollfastF = setInterval(doPoll, pollfast * 1000, list.fast);
+			if (list.slow.length > 0)
+				pollslowF = setInterval(doPoll, pollslow * 1000 * 60, list.slow);
+
+		})
+		.then(() => A.I(`Adapter ${A.ains} started and found ${list.length} items to process.`))
 		.catch(e => A.W(`Unhandled error in main: ${e}`));
 }
