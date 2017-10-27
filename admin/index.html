@@ -429,7 +429,7 @@
 	<table>
 		<tr>
 			<td>
-				<img src="systeminfo.png" alt="SystemInfo" height="30" width="32" />
+				<img src="systeminfo.png" alt="SystemInfo" height="30" width="30" />
 			</td>
 			<td style="padding-top: 20px;padding-left: 10px">
 				<h3 class="translate">SystemInfo adapter settings</h3>
@@ -448,7 +448,7 @@
 					<input class="value" id="pollslow" style="width: 60px" />
 				</td>
 				<td style="width: 33%">
-					<span class="translate">Fast Poll(s)</span>
+					<span class="translate">Fast Poll(sec)</span>
 					<input class="value" id="pollfast" style="width: 60px" />
 				</td>
 			</tr>
@@ -459,14 +459,9 @@
 		<textarea class="value" id="startup" style="width:90%;height:80px"></textarea>
 		<br>
 	</p>
-	<p>
-		<span class="translate">Poll switches every x seconds (0 = no polling)</span>
-		<input class="value" id="poll" />
-		<br>
-	</p>
 	<div id="items" style="width: 100%; height: calc(50% - 60px)">
 		<button class="table-button-add" style="margin-left: 10px; width: 1.5em; height: 1.5em"></button>&nbsp;
-		<span class="translate">Scene setup</span>
+		<span class="translate">Items setup</span>
 		<div style="width: 100%; height: calc(100% - 30px); overflow: auto;">
 			<table class="table-values" style="width: 100%;">
 				<thead>
@@ -475,7 +470,7 @@
 						<th data-name="type" data-type="select" data-options="exec;file;web;sys" style="width: 5%" class="translate">Type</th>
 						<th data-name="source" style="width: 100px" class="translate">Source</th>
 						<th data-name="regexp" style="width: 80px" class="translate">RegExpFilter</th>
-						<th data-name="conv" style="width: 60px" class="translate">Convert</th>
+						<th data-name="conv" style="width: 40px" class="translate">Convert</th>
 						<th data-name="role" style="width: 40px" class="translate">Role/Type</th>
 						<th data-name="write" style="width: 60px" class="translate">WriteCommand</th>
 						<th data-name="poll" data-type="select" data-options="fast;normal;slow" style="width: 5%" class="translate">Poll</th>

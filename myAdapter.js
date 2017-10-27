@@ -1,5 +1,5 @@
 /**
- *      iobroker MyAdapter class V1.1.0 from systeminfo
+ *      iobroker MyAdapter class V1.1.1 from systeminfo
  *      (c) 2016- <frankjoke@hotmail.com>
  *      MIT License
  */
@@ -296,7 +296,7 @@ class MyAdapter {
         return this.locDate(date).toISOString().slice(0, -5).replace('T', '@');
     }
     static obToArray(obj) {
-        return (Object.keys(obj).map(i => obj[i]));
+        return (Object.keys(obj).filter(x => obj.hasOwnProperty(x)).map(i => obj[i]));
     }
     static includes(obj, value) {
         return this.T(obj, {}) ? obj[value] !== undefined :

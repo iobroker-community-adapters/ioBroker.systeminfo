@@ -3,6 +3,7 @@
  *      (c) 2016- <frankjoke@hotmail.com>
  *      MIT License
  */
+/*jshint -W089, -W030, -W061, -W083 */
 // jshint node:true, esversion:6, strict:true, undef:true, unused:true
 "use strict";
 const utils = require('./lib/utils'),
@@ -16,13 +17,16 @@ const list = {
 		fast: [],
 		slow: []
 	},
+	states = {},
 	roleNames = ["intvalue", "switch", "boolean", "floatvalue", "value.temperature"],
 	roleRoles = ["value", "switch", "value", "value", "value.temperature"],
 	roleTypes = ["number", "boolean", "boolean", "number", "number"],
 	reIsEvalWrite = /\$\((.+)\)/,
+	reIsMultiName = /^(\S*)\s*(\(\s*(\S+)\s*(\,\s*\S+\s*)*\))?\s*(\S*)$/,
+	reIsRegExp = /^\/(.*)\/([gimy])*$/,
 	reIsArgWrite = /\$0/g;
 
-let adapterObjects, pollF, pollfastF, pollslowF,
+let pollF, pollfastF, pollslowF,
 	poll = 30,
 	pollfast = 2,
 	pollslow = 60;
@@ -66,47 +70,6 @@ class Cache {
 	}
 }
 
-/*
-A.objChange = function (obj) { //	This is needed for name changes
-	if (typeof obj === 'string' && obj.indexOf(learnedName) > 0)
-		return A.getObject(obj)
-			.then(oobj => {
-				const nst = oobj.common,
-					ncn = nst.name,
-					nid = ncn.replace(/[\ \.\,\;]/g, '_'),
-					dev = obj.split('.'),
-					fnn = dev.slice(2, -1).concat(nid).join('.');
-				if (firstCreate || nid === dev[4] || nid.startsWith(defaultName)) // no need to rename!
-					return null;
-				if (!A.states[fnn] ? (!oobj.native.code ? A.W(`Cannot rename to ${oobj.common.name} because it does not have a learned code: ${obj}`, true) : false) :
-					A.W(`Cannot rename to ${ncn} because the name is already used: ${obj}`, true)) {
-					oobj.common.name = dev[4];
-					return A.setObject(obj, oobj)
-						.catch(e => A.W(`rename back err ${e} on ${A.O(oobj)}!`));
-				}
-				nst.id = (dev[2] + learnedName + nid);
-				nst.native = oobj.native;
-				//				nst.val = codeName + oobj.native.code;
-				if (nid !== dev[4])
-					return A.makeState(nst, false, true)
-						.then(() => A.removeState(A.I(`rename ${obj} to ${fnn}!`, obj)).catch(() => true));
-			}).then(() => A.wait(20))
-			.then(() => A.getObjectList({
-				startkey: A.ain,
-				endkey: A.ain + '\u9999'
-			}))
-			.then(res => adapterObjects = (res.rows.length > 0 ? adapterObjects = res.rows.map(x => x.doc) : []))
-			.catch(err => A.W(`objChange error: ${obj} ${err}`));
-};
-
-function sendCode(device, value) {
-	let buffer = new Buffer(value.replace(reCODE, ''), 'hex'); //var buffer = new Buffer(value.substr(5), 'hex'); // substr(5) removes CODE_ from string
-
-	device.sendData(buffer);
-	return Promise.resolve(device.name + ' sent ' + value);
-	//	return Promise.resolve(A.D('sendData to ' + device.name + ', Code: ' + value));
-}
-*/
 A.stateChange = function (id, state) {
 	//	A.D(`stateChange of "${id}": ${A.O(state)}`); 
 	if (!state.ack) {
@@ -114,7 +77,7 @@ A.stateChange = function (id, state) {
 		//		A.D(`Somebody (${state.from}) id0 ${id0} changed ${id} of "${id0}" to ${A.O(state)}`);
 		return A.getObject(nid)
 			.then((obj) =>
-				obj && obj.native && obj.native.si ? writeInfo(obj.native.si, state) :
+				obj && obj.native && obj.native.si && obj.native.si.write ? writeInfo(nid, state) :
 				Promise.reject(A.D(`Invalid stateChange for "${nid}"`)))
 			.catch(err => A.W(`Error in StateChange for ${nid}: ${A.O(err)}`));
 	}
@@ -167,39 +130,90 @@ A.messages = (msg) => {
 	}
 };
 
-function doPoll() {
-	A.seriesOf(A.obToArray(scanList), device => {
-		if (!device.fun) return Promise.resolve(device.checkRequest = 0);
-		device.fun(++device.checkRequest);
-		A.wait(2000).then(() => device.checkRequest > pollerr ? (device.checkRequest % 50 === pollerr + 1 ? A.W(`Device ${device.name} not reachable`, true) : true) : false)
-			.then(res => device.checkRequest > 10 ? (currentDevice.discover(device.host), res) : res)
-			.then(res => A.makeState({
-				id: device.name + reachName,
-				write: false,
-				role: 'indicator.unreach',
-				type: typeof true,
-			}, res, true))
-			.catch(err => A.W(`Error in polling of ${device.name}: ${A.O(err)}`));
-		return Promise.resolve(device.fun);
-	}, 50);
-}
 
 */
 
-function doPoll(list) {
-	A.D(`I should poll ${A.O(list)} now!`);
+function writeInfo(id, state) {
+	if (!states[id] || !states[id].wfun)
+		return Promise.reject(`Err: no write function defined for ${id}!`);
+	let obj = states[id];
+	let val = state.val;
+	A.D(`new state:${A.O(state)} for ${A.O(obj)}`);
+	switch (obj.wtext) {
+		case 'eval':
+			let e = obj.write.replace(reIsArgWrite, val);
+			val = eval(e);
+			break;
+		default:
+			break;
+	}
+	return obj.wfun && obj.wfun(val).then(() => A.makeState(id, state.val, true), A.D);
+}
+
+function doPoll(plist) {
+
+	function setItem(item, name, value) {
+		A.D(`setItem ${name} to ${value} with ${item.type};${item.conv};${item.role}`);
+		if (!states[name])
+			states[name] = item;
+		if (item.conv)
+			switch (item.conv.trim().toLowerCase()) {
+				case 'int':
+					value = parseInt(value);
+					break;
+				case 'float':
+					value = parseInt(value);
+					break;
+				case 'bool':
+					value = A.parseLogic(value);
+					break;
+				case 'json':
+					value = A.J(value);
+					break;
+				default:
+					try {
+						value = eval(item.conv.replace(reIsArgWrite, value));
+					} catch (e) {
+						A.W(`convert '${item.conv}' for item ${name} failed with: ${e}`);
+					}
+					break;
+			}
+		let o = A.clone(item.opt);
+		o.id = name;
+		return A.makeState(o, value, true);
+	}
+
+	if (!plist)
+		plist = list.fast.concat(list.normal, list.slow);
+	if (plist.length === 0)
+		return;
+	A.D(`I should poll ${plist.map(x => x.id)} now!`);
 	const caches = {};
-	return A.seriesOf(list, item => {
+	return A.seriesOf(plist, item => {
 			if (!item.fun) return Promise.reject(`Undefined function in ${A.O(item)}`);
 			var ca = item.type + item.source;
 			if (!caches[ca])
 				caches[ca] = new Cache();
 			return caches[ca].cacheItem(ca, item.fun)
-				.then(res => 
-					item.regexp ? res.match(item.regexp) : [res] )
-				.then(A.D, A.W);
+				.then(res => {
+					let ma = item.regexp && res.match(item.regexp);
+					if (ma) {
+						if (A.T(item.id, []) && ma.length > 2) {
+							return A.seriesIn(item.id, i => {
+								i = parseInt(i);
+								A.D(`item series part ${item.name}, ${item.id[i]}, ${ma[i + 1]}`);
+								return setItem(item, item.id[i], ma[i + 1]);
+							}, 10);
+						} else {
+							res = ma[1];
+						}
+					}
+					if (A.T(item.id, ""))
+						return setItem(item, item.id, res);
+				})
+				.then(A.nop, A.D);
 		}, 1)
-		.catch(e => A.W(`Error ${e} in doPoll for ${A.O(list)}`));
+		.catch(e => A.W(`Error ${e} in doPoll for ${plist}`));
 }
 
 function main() {
@@ -212,24 +226,40 @@ function main() {
 	function createFunction(ni) {
 		switch (ni.type) {
 			case 'sys':
-				ni.fun = () => {
-					return A.readFile(ni.source);
+				ni.fun = () => A.readFile(ni.source, 'utf8').then(x => x.trim());
+				//				ni.wfun = (val) => A.writeFile(ni.source, val.toString(), 'utf8');
+				ni.wfun = (val) => {
+//					let es = `echo ${val} >${ni.source}`;
+					let es = `echo "${val}" | sudo tee ${ni.source}`;
+					return A.exec(es).then(x => A.D(`OK: ${x}`),e => A.W(`err: ${e}`));
 				};
+				ni.wtext = 'eval';
 				break;
 			case 'exec':
-				ni.fun = () => A.exec(ni.source);
+				ni.fun = () => A.exec(ni.source).then(x => x.trim());
+				ni.wfun = (val) => {
+					let w = ni.write;
+					let e = w.match(reIsEvalWrite);
+					while (e) {
+						let a = e[1].replace(reIsArgWrite, val);
+						a = eval(a);
+						w = w.replace(reIsEvalWrite, a);
+						e = w.match(reIsEvalWrite);
+					}
+					return A.exec(w).then(A.nop, A.D);
+				};
 				break;
 			case 'file':
-				ni.fun = () => {
-					return A.readFile(ni.source);
-				};
+				ni.fun = () => A.readFile(ni.source, 'utf8').then(x => x.trim());
+				ni.wfun = (val) => A.writeFile(ni.source, val.toString(), 'utf8');
+				ni.wtext = 'eval';
 				break;
 			case 'web':
-				ni.fun = () => {
-					return A.get(ni.source);
-				};
-				break;
+				ni.fun = () => A.get(ni.source);
+				break;	
 
+			case 'process':
+				// break;
 			default:
 				A.W(`Not implemented type ${ni.type}`);
 		}
@@ -244,20 +274,19 @@ function main() {
 	pollfast = tint(adapter.config.pollfast, 2);
 	pollslow = tint(adapter.config.poll, 300);
 
-	A.D(`Systeminfo will poll every ${poll}sec, pollfast every ${pollfast}sec and pollslow every ${pollslow}min.`);
-
 	for (let item of adapter.config.items) {
 		let ni = A.clone(item);
-		let ir = item.name.trim().match(/^(\S*)\s*(\(\s*(\S+)\s*(\,\s*\S+\s*)*\))?\s*(\S*)$/);
-		if (!ir)
-			return Promise.resolve(A.W(`Invalid item name in ${A.O(item)}`));
+		let ir = item.name.trim().match(reIsMultiName);
+		if (!ir) {
+			A.W(`Invalid item name in ${A.O(item)}`);
+			continue;
+		}
 		if (ir[2]) {
-			ni.id = A.trim(ir[2].slice(1,-1).split(',')).map(s => ir[1] + s + ir.slice(-1)[0]);
-		} else ni.id = ir[1]+ir.slice(-1)[0];
+			ni.id = A.trim(ir[2].slice(1, -1).split(',')).map(s => ir[1] + s + ir.slice(-1)[0]);
+		} else ni.id = ir[1] + ir.slice(-1)[0];
 		ni.write = ni.write && ni.write.trim();
 		ni.source = ni.source.trim();
 		ni.conv = ni.conv && ni.conv.trim();
-		ni.id = ni.name.trim();
 		let ra = A.trim(A.T(ni.role, "") ? ni.role.split('/') : 'value'),
 			unit = ra.length > 1 ? ra[1] : undefined,
 			rr = ra[0],
@@ -275,7 +304,14 @@ function main() {
 			};
 
 		try {
-			ni.regexp = ni.regexp && ni.regexp.trim().length>0 ? new RegExp(ni.regexp.trim()) : null;
+			let r = ni.regexp && ni.regexp.trim(),
+				m = r.match(reIsRegExp),
+				o;
+			if (m) {
+				r = m[1];
+				o = m[2];
+			}
+			ni.regexp = r.length > 0 ? new RegExp(r, o ? o : undefined) : null;
 		} catch (e) {
 			A.W(`Error ${e} in RegExp of ${A.O(ni)}`);
 			ni.regexp = null;
@@ -287,31 +323,28 @@ function main() {
 
 	}
 
-	A.D(`Systeminfo will use fast ${A.O(list.fast)}.`);
-	A.D(`Systeminfo will use normal ${A.O(list.normal)}.`);
-	A.D(`Systeminfo will use slow ${A.O(list.slow)}.`);
+	A.D(`Will poll every ${pollfast}sec: ${list.fast.map(x => x.id)}.`);
+	A.D(`Will poll every ${poll}min: ${list.normal.map(x => x.id)}.`);
+	A.D(`Will poll every ${pollslow}min: ${list.slow.map(x => x.id)}.`);
 
-	A.getObjectList({
-			startkey: A.ain,
-			endkey: A.ain + '\u9999'
-		})
-		.then(res =>
-			adapterObjects = res.rows.length > 0 ?
-			A.D(`Adapter has  ${res.rows.length} old states!`, adapterObjects = res.rows.map(x => x.doc)) : [])
-		//		.then(() => didFind = Object.keys(scanList))
-		.then(() => A.seriesOf(adapterObjects.filter(x => x && x.native && x.native.host), dev => {
-			let id = dev.native.host.name; // dev._id.slice(A.ain.length);
-			return Promise.resolve(id);
-		}, 1))
-		.then(() => {
-			if (list.normal.length > 0)
-				pollF = setInterval(doPoll, poll * 1000, list.normal);
-			if (list.fast.length > 0)
-				pollfastF = setInterval(doPoll, pollfast * 1000, list.fast);
-			if (list.slow.length > 0)
-				pollslowF = setInterval(doPoll, pollslow * 1000 * 60, list.slow);
+	A.seriesOf(A.trim(adapter.config.startup.slice('\n')), x => A.exec(x).then(A.nop, A.D), 10)
+		.then(() => doPoll())
+		.then(() => A.getObjectList({
+				startkey: A.ain,
+				endkey: A.ain + '\u9999'
+			})
+			.then(res => A.seriesOf(res.rows, item => A.states[item.id.slice(A.ain.length)] ? Promise.resolve() :
+				A.D(`Delete unneeded state ${item.id}`, A.removeState(item.id.slice(A.ain.length))), 2))
+			.then(() => {
+				if (list.normal.length > 0)
+					pollF = setInterval(doPoll, poll * 1000 * 60, list.normal);
+				if (list.fast.length > 0)
+					pollfastF = setInterval(doPoll, pollfast * 1000, list.fast);
+				if (list.slow.length > 0)
+					pollslowF = setInterval(doPoll, pollslow * 1000 * 60, list.slow);
 
-		})
-		.then(() => A.I(`Adapter ${A.ains} started and found ${list.length} items to process.`))
-		.catch(e => A.W(`Unhandled error in main: ${e}`));
+			})
+			.then(() => A.I(`Adapter ${A.ains} started and found ${list.fast.length + list.normal.length + list.slow.length}/${states.length} items/states to process.`))
+			.catch(e => A.W(`Unhandled error in main: ${e}`))
+		);
 }
