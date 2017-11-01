@@ -29,6 +29,7 @@ const list = {
 	reIsInfoName = /^(\w*)\s*(\(\s*([^\(\),\s]+)\s*(\,\s*\S+\s*)*\))?$/,
 	reIsRegExp = /^\/(.*)\/([gimy])*$/,
 	reIsObjName = /\s*(\w+)\s*\/\s*(\w*)\s*/,
+	reStripPrefix = /(?!xmlns)^.*:/,
 	reIsArgWrite = /\$0/g;
 
 let pollF, pollfastF, pollslowF,
@@ -40,20 +41,24 @@ A.init(adapter, main); // associate adapter and main with MyAdapter
 
 function xmlParseString(body) {
 
-	function tagnames(item) {
-		let all = item.split(':');
-		item = (all.length === 2) ? all[1] : all[0];
-		//            _I(`Tag: all: ${_O(all)} became ${item}`);                
-		return item;
-	}
-	return (A.c2p(new xml2js.Parser({
+	let valp = (str /* , name */) => !isNaN(str) ? A.number(str) : /^(?:true|false)$/i.test(str) ? str.toLowerCase() === 'true' : str,
+		options = {
 			explicitArray: false,
+			explicitRoot: false,
+//			ignoreAttrs: true,
+			mergeAttrs: true, 
 			trim: true,
-			tagNameProcessors: [tagnames],
+//			validator: (xpath, currentValue, newValue) => A.D(`${xpath}: ${currentValue} = ${newValue}`,newValue),
+//			validator: (xpath, currentValue, newValue) => A.T(newValue,[]) && newValue.length==1 && A.T(newValue[0],[]) ? newValue[0] : newValue,
+//			attrNameProcessors: [str => str === '$' ? '_' : str], 
+			tagNameProcessors: [(str) => str.replace(reStripPrefix,'')],
 			//                attrNameProcessors: [tagnames],
-			valueProcessors: [A.number]
-		})
-		.parseString))(body);
+			attrValueProcessors : [valp],
+			valueProcessors: [valp]
+		},
+		parser = new xml2js.Parser(options).parseString; 
+
+	return (A.c2p(parser))(body);
 }
 
 
@@ -97,7 +102,7 @@ class Cache {
 
 class JsonPath {
 	constructor(obj, opt) {
-		this.$ = (obj && A.T(obj) === 'object') ? obj : {
+		this.$ = (obj && A.T(obj) === 'object') ? A.clone(obj) : {
 			empty: "Empty Object"
 		};
 		this.resultPath = opt === "PATH" || opt && opt.resultType === "PATH";
@@ -295,7 +300,7 @@ function doPoll(plist) {
 	}
 
 	function setItem(item, name, value) {
-		A.D(`setItem ${name} to ${value} with ${item.type};${item.conv};${item.role}`);
+		A.D(`setItem ${name} to ${A.O(value)} with ${item.type};${item.conv};${item.role}`);
 		if (!states[name])
 			states[name] = item;
 		if (item.conv)
@@ -309,6 +314,9 @@ function doPoll(plist) {
 				case '!boolean':
 					value = !A.parseLogic(value);
 					break;
+				case 'json':
+				case 'xml':
+					break;
 				default:
 					try {
 						value = eval(item.conv.replace(reIsArgWrite, value));
@@ -319,6 +327,17 @@ function doPoll(plist) {
 			}
 		let o = A.clone(item.opt);
 		o.id = name;
+		switch(A.T(value)) {
+			case 'object':
+			case 'array':
+				value = A.O(value);
+				break;
+			case 'function':
+				value = `${value}`;
+				break;
+			default: 
+				break;
+		}
 		return A.makeState(o, value, true);
 	}
 
@@ -335,63 +354,69 @@ function doPoll(plist) {
 				caches[ca] = new Cache();
 			return caches[ca].cacheItem(ca, item.fun)
 				.then(res => {
-					let ma, jp, io = A.T(item.id, {}),
-						id = item.id;
-					switch (item.conv) {
-						case 'json':
-							res = A.J(res);
-							break;
-						case 'xml':
-							res = xmlParseString(res);
-							break;
-						default:
-							if ((jp = item.conv.match(reIsRegExp))) {
-								jp = new RegExp(jp[1], jp[2]);
-								jp = res.match(jp);
-								res = jp ? jp[2] : res;
+					let ma, jp,
+						id = item.id,
+						typ = item.type;
+					return A.resolve(res).then(res => {
+						switch (item.conv) {
+							case 'json':
+								res = A.J(res);
+								typ = 'info';
+								break;
+							case 'xml':
+							typ = 'info';
+							return xmlParseString(res).then(json => (res = json, json));
+							default:
+								if ((jp = item.conv.match(reIsRegExp))) {
+									jp = new RegExp(jp[1], jp[2]);
+									jp = res.match(jp);
+									res = jp ? jp[2] : res;
+								}
+								break;
+						}
+						return res;
+					}).then(res => {
+						A.D(`${item.name}  received ${A.O(res,1)}`);
+						switch (typ) {
+							case 'info':
+								jp = new JsonPath(res);
+								ma = jp.parse(item.regexp);
+//								A.D(`ma=${ma}`);
+								if (!ma || ma.length === 0)
+									res = ma;
+								break;
+							default:
+								ma = item.regexp && res.match(item.regexp);
+								ma = ma ? ma.slice(1) : null;
+								break;
+						}
+						if (ma && A.T(item.id, {})) {
+							let mat = A.T(ma[0]);
+							if (mat === 'object' && id.mid === '*') 
+								return A.seriesOf(Object.keys(ma).filter(x => ma.hasOwnProperty(x)), i => setItem(item, idid(id, i), ma[i]), 1);
+							
+							if (id.name && mat === 'object') {
+								if (!id.value)
+									return A.seriesOf(ma, o => A.T(o, {}) ? A.seriesOf(Object.keys(o).filter(x => o.hasOwnProperty(x)),
+										i => i !== id.name ? setItem(item, idid(id, o[id.name] + '.' + i), o[i]) : A.resolve(), 1) : A.resolve(), 1);
+								return A.seriesOf(ma, o => setItem(item, idid(id, o[id.name]), o[id.value]), 1);
 							}
-							break;
-					}
-					switch (item.type) {
-						case 'info':
-							jp = new JsonPath(res);
-							ma = jp.parse(item.regexp);
-							if (ma && ma.length > 0)
-								ma = [null].concat(ma);
-							break;
-						default:
-							ma = item.regexp && res.match(item.regexp);
-							break;
-					}
-					if (ma) {
-						if (io && A.T(ma[1], {}) && id.mid === '*') {
-							ma = ma[1];
-							return A.seriesOf(Object.keys(ma).filter(x => ma.hasOwnProperty(x)), i => setItem(item, idid(id, i), ma[i]), 1);
-						}
-						if (io && id.name && A.T(ma[1], {})) {
-							ma = ma.slice(1);
-							if (!id.value)
-								return A.seriesOf(ma, o => A.T(o, {}) ? A.seriesOf(Object.keys(o).filter(x => o.hasOwnProperty(x)),
-									i => i !== id.name ? setItem(item, idid(id, o[id.name] + '.' + i), o[i]) : A.resolve(), 1) : A.resolve(), 1);
-							return A.seriesOf(ma, o => setItem(item, idid(id, o[id.name]), o[id.value]), 1);
-						}
-						//						if (io && A.T(item.id.mid, [])) {
-						if (io && id.mid === '*')
-							return A.seriesIn(ma.slice(1), i => {
-								i = parseInt(i) + 1;
-								return setItem(item, idid(id, i), ma[i]);
-							}, 1);
-						if (io && A.T(item.id.mid, []))
-							return A.seriesIn(item.id.mid, i => {
-								i = parseInt(i);
-								return setItem(item, idid(id, id.mid[i]), ma[i + 1]);
-							}, 1);
-						res = ma[1];
-					}
-					if (A.T(item.id, ""))
-						return setItem(item, item.id, res);
-				})
-				.then(A.nop, A.D);
+							//						if (io && A.T(item.id.mid, [])) {
+							if (id.mid === '*')
+								return A.seriesIn(ma, i => setItem(item, idid(id, i), ma[parseInt(i)]), 1);
+
+							if (A.T(item.id.mid, []))
+								return A.seriesIn(item.id.mid, i => {
+									i = parseInt(i);
+									return setItem(item, idid(id, id.mid[i]), ma[i]);
+								}, 1);
+							res = ma;
+						} 
+						if (A.T(item.id, ""))
+							return setItem(item, item.id, res);
+						return setItem(item, idid(id,'?'), res);
+						});
+				});
 		}, 1)
 		.catch(e => A.W(`Error ${e} in doPoll for ${plist}`));
 }
@@ -505,11 +530,9 @@ function main() {
 				unit: unit,
 				native: {}
 			};
-		switch (ni.type) {
-			case 'info':
+		if (ni.type==='info' || ni.conv === 'xml' || ni.conv === 'json') 
 				ni.regexp = ni.regexp.trim();
-				break;
-			default:
+		else {
 				try {
 					let r = ni.regexp && ni.regexp.trim(),
 						m = r.match(reIsRegExp),
