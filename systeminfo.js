@@ -411,7 +411,8 @@ function doPoll(plist) {
 									return setItem(item, idid(id, id.mid[i]), ma[i]);
 								}, 1);
 							res = ma;
-						} 
+						} else if(ma) 
+							res = ma;
 						if (A.T(item.id, ""))
 							return setItem(item, item.id, res);
 						return setItem(item, idid(id,'?'), res);
