@@ -27,8 +27,8 @@ Der Adapter generiert states aufgrund von Konfigurationsdaten welche:
 * Requires node >=v4.5
 
 ## Changelog
-### 0.0.1
-* First instance copied over from other adapter!
+### 0.1.0
+* First working instance for files, exe and systeminfo
 
 ### Todo for later revisions
 * Allow for plugins for new datasources

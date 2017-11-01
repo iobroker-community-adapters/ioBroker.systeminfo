@@ -3,14 +3,17 @@
  *      (c) 2016- <frankjoke@hotmail.com>
  *      MIT License
  */
-/*jshint -W089, -W030, -W061, -W083 */
+/*jshint -W089, -W030, -W061 */
 // jshint node:true, esversion:6, strict:true, undef:true, unused:true
 "use strict";
 const utils = require('./lib/utils'),
 	adapter = utils.adapter('systeminfo'),
 	//	dns = require('dns'),
 	assert = require('assert'),
-	A = require('./myAdapter');
+	A = require('./myAdapter'),
+	si = require('systeminformation'),
+	xml2js = require('xml2js');
+
 
 const list = {
 		normal: [],
@@ -18,12 +21,14 @@ const list = {
 		slow: []
 	},
 	states = {},
-	roleNames = ["intvalue", "switch", "boolean", "floatvalue", "value.temperature"],
-	roleRoles = ["value", "switch", "value", "value", "value.temperature"],
-	roleTypes = ["number", "boolean", "boolean", "number", "number"],
+	roleNames = ["number", "switch", "boolean", "value.temperature"],
+	roleRoles = ["value", "switch", "value", "value.temperature"],
+	roleTypes = ["number", "boolean", "boolean", "number"],
 	reIsEvalWrite = /\$\((.+)\)/,
-	reIsMultiName = /^(\S*)\s*(\(\s*(\S+)\s*(\,\s*\S+\s*)*\))?\s*(\S*)$/,
+	reIsMultiName = /^([^\s,\[]+)\s*(\[\s*(\w+\s*\/\s*\w*|[^\s,\]]+(\s*\,\s*[^\s,\]]+)+|\*)\s*\]\s*)?(\S*)$/,
+	reIsInfoName = /^(\w*)\s*(\(\s*([^\(\),\s]+)\s*(\,\s*\S+\s*)*\))?$/,
 	reIsRegExp = /^\/(.*)\/([gimy])*$/,
+	reIsObjName = /\s*(\w+)\s*\/\s*(\w*)\s*/,
 	reIsArgWrite = /\$0/g;
 
 let pollF, pollfastF, pollslowF,
@@ -32,6 +37,26 @@ let pollF, pollfastF, pollslowF,
 	pollslow = 60;
 
 A.init(adapter, main); // associate adapter and main with MyAdapter
+
+function xmlParseString(body) {
+
+	function tagnames(item) {
+		let all = item.split(':');
+		item = (all.length === 2) ? all[1] : all[0];
+		//            _I(`Tag: all: ${_O(all)} became ${item}`);                
+		return item;
+	}
+	return (A.c2p(new xml2js.Parser({
+			explicitArray: false,
+			trim: true,
+			tagNameProcessors: [tagnames],
+			//                attrNameProcessors: [tagnames],
+			valueProcessors: [A.number]
+		})
+		.parseString))(body);
+}
+
+
 
 class Cache {
 	constructor(fun) { // neue Einträge werden mit dieser Funktion kreiert
@@ -56,7 +81,7 @@ class Cache {
 		assert(!fun || A.T(fun) === 'function', 'Cache arg need to be a function returning a promise!');
 		//        A.D(`looking for ${item} in ${A.O(this._cache)}`);
 		if (this._cache[item])
-			return Promise.resolve(this._cache[item]);
+			return A.resolve(this._cache[item]);
 		if (!fun)
 			fun = this._fun;
 		assert(A.T(fun) === 'function', `checkItem needs a function to fill cache!`);
@@ -69,6 +94,119 @@ class Cache {
 		return this._cache[x];
 	}
 }
+
+class JsonPath {
+	constructor(obj, opt) {
+		this.$ = (obj && A.T(obj) === 'object') ? obj : {
+			empty: "Empty Object"
+		};
+		this.resultPath = opt === "PATH" || opt && opt.resultType === "PATH";
+	}
+
+	parse(expr) {
+		this.result = [];
+
+		if (expr && this.$) {
+			this.trace(this.normalize(expr).replace(/^\$;/, ""), this.$, "$");
+		}
+		return this.result.length ? this.result : false;
+	}
+
+	normalize(expr) {
+		var subx = [];
+		return expr.replace(/[\['](\??\(.*?\))[\]']/g, function ($0, $1) {
+				return "[#" + (subx.push($1) - 1) + "]";
+			})
+			.replace(/'?\.'?|\['?/g, ";")
+			.replace(/;;;|;;/g, ";..;")
+			.replace(/;$|'?\]|'$/g, "")
+			.replace(/#([0-9]+)/g, function ($0, $1) {
+				return subx[$1];
+			});
+	}
+
+	store(p, v) {
+		if (!p)
+			return false;
+		if (!this.resultPath)
+			this.result.push(v);
+		else {
+			let x = p.split(";");
+			p = "$";
+			for (var i = 1, n = x.length; i < n; i++)
+				p += /^[0-9*]+$/.test(x[i]) ? ("[" + x[i] + "]") : ("['" + x[i] + "']");
+			this.result.push(p);
+		}
+		return true;
+	}
+
+	trace(expr, val, path) {
+		const that = this;
+		if (expr) {
+			var x = expr.split(";"),
+				loc = x.shift();
+			x = x.join(";");
+			if (val && val.hasOwnProperty(loc))
+				this.trace(x, val[loc], path + ";" + loc);
+			else if (loc === "*")
+				this.walk(loc, x, val, path, function (m, l, x, v, p) {
+					that.trace(m + ";" + x, v, p);
+				});
+			else if (loc === "..") {
+				this.trace(x, val, path);
+				this.walk(loc, x, val, path, function (m, l, x, v, p) {
+					typeof v[m] === "object" && that.trace("..;" + x, v[m], p + ";" + m);
+				});
+			} else if (/,/.test(loc)) { // [name1,name2,...]
+				for (var s = loc.split(/'?,'?/), i = 0, n = s.length; i < n; i++)
+					this.trace(s[i] + ";" + x, val, path);
+			} else if (/^\(.*?\)$/.test(loc)) // [(expr)]
+				this.trace(this.eval(loc, val, path.substr(path.lastIndexOf(";") + 1)) + ";" + x, val, path);
+			else if (/^\?\(.*?\)$/.test(loc)) // [?(expr)]
+				this.walk(loc, x, val, path, function (m, l, x, v, p) {
+					if (that.eval(l.replace(/^\?\((.*?)\)$/, "$1"), v[m], m)) that.trace(m + ";" + x, v, p);
+				});
+			else if (/^(-?[0-9]*):(-?[0-9]*):?([0-9]*)$/.test(loc)) {
+				let len = val.length,
+					start = 0,
+					end = len,
+					step = 1;
+				loc.replace(/^(-?[0-9]*):(-?[0-9]*):?(-?[0-9]*)$/g, function ($0, $1, $2, $3) {
+					start = parseInt($1 || start);
+					end = parseInt($2 || end);
+					step = parseInt($3 || step);
+				});
+				start = (start < 0) ? Math.max(0, start + len) : Math.min(len, start);
+				end = (end < 0) ? Math.max(0, end + len) : Math.min(len, end);
+				for (var j = start; j < end; j += step)
+					this.trace(j + ";" + x, val, path);
+			}
+		} else
+			that.store(path, val);
+	}
+
+	walk(loc, expr, val, path, f) {
+		if (val instanceof Array) {
+			for (var i = 0, n = val.length; i < n; i++)
+				if (i in val)
+					f(i, loc, expr, val, path);
+		} else if (typeof val === "object") {
+			for (var m in val)
+				if (val.hasOwnProperty(m))
+					f(m, loc, expr, val, path);
+		}
+	}
+
+	eval(x, _v /* , _vname */ ) {
+		try {
+			return this.$ && _v && eval(x.replace(/@/g, "_v"));
+		} catch (e) {
+			throw new SyntaxError("jsonPath: " + e.message + ": " + x.replace(/@/g, "_v").replace(/\^/g, "_a"));
+		}
+	}
+
+}
+
 
 A.stateChange = function (id, state) {
 	//	A.D(`stateChange of "${id}": ${A.O(state)}`); 
@@ -138,7 +276,7 @@ function writeInfo(id, state) {
 		return Promise.reject(`Err: no write function defined for ${id}!`);
 	let obj = states[id];
 	let val = state.val;
-	A.D(`new state:${A.O(state)} for ${A.O(obj)}`);
+	A.D(`new state:${A.O(state)} for ${id}`);
 	switch (obj.wtext) {
 		case 'eval':
 			let e = obj.write.replace(reIsArgWrite, val);
@@ -152,23 +290,24 @@ function writeInfo(id, state) {
 
 function doPoll(plist) {
 
+	function idid(id, n) {
+		return id.pre + n + id.post;
+	}
+
 	function setItem(item, name, value) {
 		A.D(`setItem ${name} to ${value} with ${item.type};${item.conv};${item.role}`);
 		if (!states[name])
 			states[name] = item;
 		if (item.conv)
 			switch (item.conv.trim().toLowerCase()) {
-				case 'int':
-					value = parseInt(value);
+				case 'number':
+					value = isNaN(value) ? NaN : A.number(value);
 					break;
-				case 'float':
-					value = parseInt(value);
-					break;
-				case 'bool':
+				case 'boolean':
 					value = A.parseLogic(value);
 					break;
-				case 'json':
-					value = A.J(value);
+				case '!boolean':
+					value = !A.parseLogic(value);
 					break;
 				default:
 					try {
@@ -196,17 +335,58 @@ function doPoll(plist) {
 				caches[ca] = new Cache();
 			return caches[ca].cacheItem(ca, item.fun)
 				.then(res => {
-					let ma = item.regexp && res.match(item.regexp);
+					let ma, jp, io = A.T(item.id, {}),
+						id = item.id;
+					switch (item.conv) {
+						case 'json':
+							res = A.J(res);
+							break;
+						case 'xml':
+							res = xmlParseString(res);
+							break;
+						default:
+							if ((jp = item.conv.match(reIsRegExp))) {
+								jp = new RegExp(jp[1], jp[2]);
+								jp = res.match(jp);
+								res = jp ? jp[2] : res;
+							}
+							break;
+					}
+					switch (item.type) {
+						case 'info':
+							jp = new JsonPath(res);
+							ma = jp.parse(item.regexp);
+							if (ma && ma.length > 0)
+								ma = [null].concat(ma);
+							break;
+						default:
+							ma = item.regexp && res.match(item.regexp);
+							break;
+					}
 					if (ma) {
-						if (A.T(item.id, []) && ma.length > 2) {
-							return A.seriesIn(item.id, i => {
-								i = parseInt(i);
-								A.D(`item series part ${item.name}, ${item.id[i]}, ${ma[i + 1]}`);
-								return setItem(item, item.id[i], ma[i + 1]);
-							}, 10);
-						} else {
-							res = ma[1];
+						if (io && A.T(ma[1], {}) && id.mid === '*') {
+							ma = ma[1];
+							return A.seriesOf(Object.keys(ma).filter(x => ma.hasOwnProperty(x)), i => setItem(item, idid(id, i), ma[i]), 1);
 						}
+						if (io && id.name && A.T(ma[1], {})) {
+							ma = ma.slice(1);
+							if (!id.value)
+								return A.seriesOf(ma, o => A.T(o, {}) ? A.seriesOf(Object.keys(o).filter(x => o.hasOwnProperty(x)),
+									i => i !== id.name ? setItem(item, idid(id, o[id.name] + '.' + i), o[i]) : A.resolve(), 1) : A.resolve(), 1);
+							return A.seriesOf(ma, o => setItem(item, idid(id, o[id.name]), o[id.value]), 1);
+						}
+						//						if (io && A.T(item.id.mid, [])) {
+						if (io && id.mid === '*')
+							return A.seriesIn(ma.slice(1), i => {
+								i = parseInt(i) + 1;
+								return setItem(item, idid(id, i), ma[i]);
+							}, 1);
+						if (io && A.T(item.id.mid, []))
+							return A.seriesIn(item.id.mid, i => {
+								i = parseInt(i);
+								return setItem(item, idid(id, id.mid[i]), ma[i + 1]);
+							}, 1);
+						res = ma[1];
 					}
 					if (A.T(item.id, ""))
 						return setItem(item, item.id, res);
@@ -225,16 +405,6 @@ function main() {
 
 	function createFunction(ni) {
 		switch (ni.type) {
-			case 'sys':
-				ni.fun = () => A.readFile(ni.source, 'utf8').then(x => x.trim());
-				//				ni.wfun = (val) => A.writeFile(ni.source, val.toString(), 'utf8');
-				ni.wfun = (val) => {
-//					let es = `echo ${val} >${ni.source}`;
-					let es = `echo "${val}" | sudo tee ${ni.source}`;
-					return A.exec(es).then(x => A.D(`OK: ${x}`),e => A.W(`err: ${e}`));
-				};
-				ni.wtext = 'eval';
-				break;
 			case 'exec':
 				ni.fun = () => A.exec(ni.source).then(x => x.trim());
 				ni.wfun = (val) => {
@@ -256,10 +426,29 @@ function main() {
 				break;
 			case 'web':
 				ni.fun = () => A.get(ni.source);
-				break;	
+				break;
 
-			case 'process':
-				// break;
+			case 'info':
+				ni.fun = () => {
+					function doCmd(cmd) {
+						let m = cmd.match(reIsInfoName),
+							r = {};
+						if (!m)
+							return A.D(`Invalid function statement in ${ni.name} for '${cmd}'`, null);
+						if (A.T(si[m[1]]) !== 'function')
+							return A.D(`Invalid function of 'systeminformation' in ${ni.name} for '${cmd}'`, null);
+						r.fun = m[1];
+						r.args = m[2] ? A.trim(m[2].slice(1, -1).split(',')) : [];
+						return r;
+					}
+					let cmds = A.trim(ni.source.split(',')).map(cmd => doCmd(cmd)).filter(x => !!x),
+						res = {};
+					if (cmds.length < 1)
+						return Promise.reject(`No valid function found in  'systeminformation' in ${ni.name} for '${ni.source}'`, null);
+
+					return A.seriesOf(cmds, x => A.P(si[x.fun].apply(si, x.args)).then(r => res[x.fun] = r), 1).then(() => res, () => {});
+				};
+				break;
 			default:
 				A.W(`Not implemented type ${ni.type}`);
 		}
@@ -282,8 +471,22 @@ function main() {
 			continue;
 		}
 		if (ir[2]) {
-			ni.id = A.trim(ir[2].slice(1, -1).split(',')).map(s => ir[1] + s + ir.slice(-1)[0]);
-		} else ni.id = ir[1] + ir.slice(-1)[0];
+			let irn = {
+				pre: ir[1],
+				post: ir[5],
+				mid: ir[3]
+			};
+			if (irn.mid !== '*') {
+				let on = irn.mid.match(reIsObjName);
+				if (on) {
+					irn.name = on[1];
+					irn.value = on[2] !== '' ? on[2] : null;
+				} else {
+					irn.mid = A.trim(irn.mid.split(','));
+				}
+			}
+			ni.id = irn;
+		} else ni.id = ir[1];
 		ni.write = ni.write && ni.write.trim();
 		ni.source = ni.source.trim();
 		ni.conv = ni.conv && ni.conv.trim();
@@ -302,19 +505,24 @@ function main() {
 				unit: unit,
 				native: {}
 			};
-
-		try {
-			let r = ni.regexp && ni.regexp.trim(),
-				m = r.match(reIsRegExp),
-				o;
-			if (m) {
-				r = m[1];
-				o = m[2];
-			}
-			ni.regexp = r.length > 0 ? new RegExp(r, o ? o : undefined) : null;
-		} catch (e) {
-			A.W(`Error ${e} in RegExp of ${A.O(ni)}`);
-			ni.regexp = null;
+		switch (ni.type) {
+			case 'info':
+				ni.regexp = ni.regexp.trim();
+				break;
+			default:
+				try {
+					let r = ni.regexp && ni.regexp.trim(),
+						m = r.match(reIsRegExp),
+						o;
+					if (m) {
+						r = m[1];
+						o = m[2];
+					}
+					ni.regexp = r.length > 0 ? new RegExp(r, o ? o : undefined) : null;
+				} catch (e) {
+					A.W(`Error ${e} in RegExp of ${A.O(ni)}`);
+					ni.regexp = null;
+				}
 		}
 		opt.native.si = A.clone(ni);
 		createFunction(ni);
@@ -333,7 +541,7 @@ function main() {
 				startkey: A.ain,
 				endkey: A.ain + '\u9999'
 			})
-			.then(res => A.seriesOf(res.rows, item => A.states[item.id.slice(A.ain.length)] ? Promise.resolve() :
+			.then(res => A.seriesOf(res.rows, item => A.states[item.id.slice(A.ain.length)] ? A.resolve() :
 				A.D(`Delete unneeded state ${item.id}`, A.removeState(item.id.slice(A.ain.length))), 2))
 			.then(() => {
 				if (list.normal.length > 0)
@@ -344,7 +552,7 @@ function main() {
 					pollslowF = setInterval(doPoll, pollslow * 1000 * 60, list.slow);
 
 			})
-			.then(() => A.I(`Adapter ${A.ains} started and found ${list.fast.length + list.normal.length + list.slow.length}/${states.length} items/states to process.`))
+			.then(() => A.I(`Adapter ${A.ains} started and found ${list.fast.length + list.normal.length + list.slow.length}/${A.obToArray(states).length} items/states to process.`))
 			.catch(e => A.W(`Unhandled error in main: ${e}`))
 		);
 }

@@ -1,7 +1,7 @@
 {
     "common": {
         "name": "systeminfo",
-        "version": "0.0.1",
+        "version": "0.1.0",
         "title": "Systeminfo Adapter to get data from systems",
         "news": {
             "1.8.0": {
@@ -31,13 +31,15 @@
         "enabled": true,
         "messagebox": false,
         "subscribe": "messagebox_",
-        "extIcon": "https://raw.githubusercontent.com/frankjoke/ioBroker.systeminfo/master/admin/broadlink.png",
+        "extIcon": "https://raw.githubusercontent.com/frankjoke/ioBroker.systeminfo/master/admin/systeminfo.png",
         "keywords": [
-            "Broadlink",
+            "Systeminfo",
             "System",
             "Web",
-            "Files"
-                ],
+            "Files",
+            "JSON",
+            "XML"
+        ],
         "readme": "https://github.com/frankjoke/ioBroker.systeminfo/blob/master/README.md",
         "loglevel": "info",
         "type": "hardware",
@@ -50,8 +52,7 @@
         "pollfast": "2",
         "pollslow": "300",
         "startup": "gpio mode 1 output",
-        "items": [
-            {
+        "items": [{
                 "name": "System.SOC_Temp",
                 "type": "file",
                 "source": "/sys/class/thermal/thermal_zone0/temp",

@@ -21,7 +21,7 @@ module.exports = function (grunt) {
     if (process.argv[2] == 'rename') {
 		console.log('Try to rename to "' + newname + '"');
         if (!newname) {
-            console.log('Please write the new broadlink name, like: "grunt rename --name=mywidgetset" --author="Author Name"');
+            console.log('Please write the new systeminfo name, like: "grunt rename --name=mywidgetset" --author="Author Name"');
             process.exit();
         }
         if (newname.indexOf(' ') != -1) {
@@ -32,17 +32,17 @@ module.exports = function (grunt) {
             console.log('Name must be lower case.');
             process.exit();
         }
-        if (fs.existsSync(__dirname + '/admin/broadlink.png')) {
-            fs.renameSync(__dirname + '/admin/broadlink.png',              __dirname + '/admin/' + newname + '.png');
+        if (fs.existsSync(__dirname + '/admin/systeminfo.png')) {
+            fs.renameSync(__dirname + '/admin/systeminfo.png',              __dirname + '/admin/' + newname + '.png');
         }
-        if (fs.existsSync(__dirname + '/widgets/broadlink.html')) {
-            fs.renameSync(__dirname + '/widgets/broadlink.html',           __dirname + '/widgets/' + newname + '.html');
+        if (fs.existsSync(__dirname + '/widgets/systeminfo.html')) {
+            fs.renameSync(__dirname + '/widgets/systeminfo.html',           __dirname + '/widgets/' + newname + '.html');
         }
-        if (fs.existsSync(__dirname + '/widgets/broadlink/js/broadlink.js')) {
-            fs.renameSync(__dirname + '/widgets/broadlink/js/broadlink.js', __dirname + '/widgets/broadlink/js/' + newname + '.js');
+        if (fs.existsSync(__dirname + '/widgets/systeminfo/js/systeminfo.js')) {
+            fs.renameSync(__dirname + '/widgets/systeminfo/js/systeminfo.js', __dirname + '/widgets/systeminfo/js/' + newname + '.js');
         }
-        if (fs.existsSync(__dirname + '/widgets/broadlink')) {
-            fs.renameSync(__dirname + '/widgets/broadlink',                __dirname + '/widgets/' + newname);
+        if (fs.existsSync(__dirname + '/widgets/systeminfo')) {
+            fs.renameSync(__dirname + '/widgets/systeminfo',                __dirname + '/widgets/' + newname);
         }
     }
 
@@ -100,12 +100,12 @@ module.exports = function (grunt) {
                 options: {
                     patterns: [
                         {
-                            match: /broadlink/g,
+                            match: /systeminfo/g,
                             replacement: newname
                         },
                         {
-                            match: /Broadlink/g,
-                            replacement: newname ? (newname[0].toUpperCase() + newname.substring(1)) : 'Broadlink'
+                            match: /systeminfo/g,
+                            replacement: newname ? (newname[0].toUpperCase() + newname.substring(1)) : 'systeminfo'
                         },
                         {
                             match: /Frank Joke/g,

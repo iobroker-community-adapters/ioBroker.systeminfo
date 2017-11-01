@@ -1,9 +1,8 @@
 /**
- *      iobroker MyAdapter class V1.1.1 from systeminfo
+ *      iobroker MyAdapter class V1.2.0 from systeminfo
  *      (c) 2016- <frankjoke@hotmail.com>
  *      MIT License
  */
-/*jshint -W089, -W030 */
 // jshint  node: true, esversion: 6, strict: true, undef: true, unused: true
 "use strict";
 const util = require('util'),
@@ -31,7 +30,7 @@ class MyAdapter {
     }
 
     static processMessage(obj) {
-        return (obj.command === 'debug' ? Promise.resolve(`debug set to '${inDebug = this.parseLogic(obj.message)}'`) : messages(obj))
+        return (obj.command === 'debug' ? this.resolve(`debug set to '${inDebug = this.parseLogic(obj.message)}'`) : messages(obj))
             .then(res => this.D(`Message from '${obj.from}', command '${obj.command}', message '${this.S(obj.message)}' executed with result:"${this.S(res)}"`, res),
                 err => this.W(`invalid Message ${this.O(obj)} caused error ${this.O(err)}`, err))
             .then(res => obj.callback ? adapter.sendTo(obj.from, obj.command, res, obj.callback) : undefined)
@@ -49,7 +48,7 @@ class MyAdapter {
         this.setState = this.c2p(adapter.setState);
 
         return (!adapter.config.forceinit ?
-                Promise.resolve({
+                this.resolve({
                     rows: []
                 }) :
                 this.getObjectList({
@@ -91,15 +90,23 @@ class MyAdapter {
         main = typeof ori_main === 'function' ? ori_main : () => this.W(`No 'main() defined for ${adapter.name}!`);
         messages = (mes) => Promise.resolve(this.W(`Message ${this.O(mes)} received and no handler defined!`));
 
+        this._util = util;
+        this._fs = fs;
+        this._assert = assert;
+        this._http = http;
+        this._https = https;
+        this._url = url;
+        this._child_process = require('child_process');
+
         this.writeFile = this.c2p(fs.writeFile);
         this.readFile = this.c2p(fs.readFile);
         this.getForeignObject = this.c2p(adapter.getForeignObject);
         this.setForeignObject = this.c2p(adapter.setForeignObject);
         this.getForeignObjects = this.c2p(adapter.getForeignObjects);
         this.getObject = this.c2p(adapter.getObject);
-        this.deleteState = (id) => this.c1pe(adapter.deleteState)(id).catch(res => res === 'Not exists' ? Promise.resolve() : Promise.reject(res));
-        this.delObject = (id, opt) => this.c1pe(adapter.delObject)(id, opt).catch(res => res === 'Not exists' ? Promise.resolve() : Promise.reject(res));
-        this.delState = (id, opt) => this.c1pe(adapter.delState)(id, opt).catch(res => res === 'Not exists' ? Promise.resolve() : Promise.reject(res));
+        this.deleteState = (id) => this.c1pe(adapter.deleteState)(id).catch(res => res === 'Not exists' ? this.resolve() : this.reject(res));
+        this.delObject = (id, opt) => this.c1pe(adapter.delObject)(id, opt).catch(res => res === 'Not exists' ? this.resolve() : this.reject(res));
+        this.delState = (id, opt) => this.c1pe(adapter.delState)(id, opt).catch(res => res === 'Not exists' ? this.resolve() : this.reject(res));
         this.removeState = (id, opt) => this.delState(id, opt).then(() => this.delObject((delete this.states[id], id), opt));
         this.setObject = this.c2p(adapter.setObject);
         this.createState = this.c2p(adapter.createState);
@@ -142,6 +149,11 @@ class MyAdapter {
     }
     static trim(x) {
         return Array.isArray(x) ? x.map(this.trim) : typeof x === 'string' ? x.trim() : `${x}`.trim();
+    }
+    static number(str) {
+        if (!isNaN(str))
+            str = str % 1 === 0 ? parseInt(str) : parseFloat(str);
+        return str;
     }
     static D(str, val) {
         return (inDebug ?
@@ -236,9 +248,17 @@ class MyAdapter {
         if (pv && typeof pv.then === 'function')
             return new Promise((rs, rj) => pv.then(rs, rj));
         if (pv)
-            return Promise.resolve(res || pv);
-        return Promise.reject(rej || pv);
+            return this.resolve(res || pv);
+        return this.reject(rej || pv);
     }
+
+    static resolve(x) {
+         return new Promise((res) => process.nextTick(() => res(x)));
+    }
+
+    static reject(x) {
+        return new Promise((res,rej) => process.nextTick(() => rej(x)));
+   }
 
     static pTimeout(pr, time, callback) {
         let t = parseInt(time);
@@ -367,14 +387,14 @@ class MyAdapter {
     static retry(nretry, fn, arg) {
         assert(typeof fn === 'function', 'retry (,fn,) error: fn is not a function!');
         nretry = parseInt(nretry);
-        return fn(arg).catch(err => nretry <= 0 ? Promise.reject(err) : this.retry(nretry - 1, fn, arg));
+        return fn(arg).catch(err => nretry <= 0 ? this.reject(err) : this.retry(nretry - 1, fn, arg));
     }
 
     static
     while ( /** function */ fw, /** function */ fn, /** number */ time) {
         assert(typeof fw === 'function' && typeof fn === 'function', 'retry (fw,fn,) error: fw or fn is not a function!');
         time = parseInt(time) || 1;
-        return !fw() ? Promise.resolve(true) :
+        return !fw() ? this.resolve(true) :
             fn().then(() => true, () => true)
             .then(() => this.wait(time))
             .then(() => this.while(fw, fn, time));
@@ -384,8 +404,8 @@ class MyAdapter {
         assert(typeof fn === 'function', 'repeat (,fn,) error: fn is not a function!');
         nretry = parseInt(nretry);
         return fn(arg)
-            .then(res => Promise.reject(res))
-            .catch(res => nretry <= 0 ? Promise.resolve(res) : this.repeat(nretry - 1, fn, arg));
+            .then(res => this.reject(res))
+            .catch(res => nretry <= 0 ? this.resolve(res) : this.repeat(nretry - 1, fn, arg));
     }
 
     static exec(command) {
@@ -459,9 +479,9 @@ class MyAdapter {
             function err(e, msg) {
                 if (!msg)
                     msg = e;
-                res && res.removeAllListeners();
+                if (res) res.removeAllListeners();
                 //                req && req.removeAllListeners();
-                req && !req.aborted && req.abort();
+                if (req && !req.aborted) req.abort();
                 //                res && res.destroy();
                 MyAdapter.D('err in response:' + msg);
                 return reject(msg);
@@ -491,12 +511,14 @@ class MyAdapter {
                 res.on('data', (chunk) => rawData += chunk);
                 res.on('end', () => resolve(rawData));
             }).on('error', (e) => reject(e));
-        })).catch(err => !retry ? Promise.reject(err) : this.wait(100, retry - 1).then(a => this.get(url, a)));
+        })).catch(err => !retry ? this.reject(err) : this.wait(100, retry - 1).then(a => this.get(url, a)));
     }
 
     static equal(a, b) {
-        if (a === b)
-            return true;
+        /*jshint -W116 */
+        if (a == b)
+        /*jshint +W116 */
+        return true;
         let ta = this.T(a),
             tb = this.T(b);
         if (ta === tb) {
@@ -508,12 +530,12 @@ class MyAdapter {
     }
 
     static changeState(id, value, ack, always) {
-        if (value === undefined) return Promise.resolve();
+        if (value === undefined) return this.resolve();
         assert(typeof id === 'string', 'changeState (id,,,) error: id is not a string!');
         always = always === undefined ? false : !!always;
         ack = ack === undefined ? true : !!ack;
         return this.getState(id)
-            .then(st => st && !always && this.equal(st.val, value) && st.ack === ack ? Promise.resolve() :
+            .then(st => st && !always && this.equal(st.val, value) && st.ack === ack ? this.resolve() :
                 this.setState(this.D(`Change ${id} to ${this.O(value)} with ack: ${ack}`, id), value, ack))
             .catch(err => this.W(`Error in MyAdapter.setState(${id},${value},${ack}): ${err}`, this.setState(id, value, ack)));
     }
@@ -528,7 +550,7 @@ class MyAdapter {
             } : {};
         else if (typeof id.id === 'string') {
             id = id.id;
-        } else return Promise.reject(this.W(`Invalid makeState id: ${this.O(id)}`));
+        } else return this.reject(this.W(`Invalid makeState id: ${this.O(id)}`));
         if (this.states[id])
             return this.changeState(id, value, ack, always);
         //    this.D(`Make State ${id} and set value to:${this.O(value)} ack:${ack}`); ///TC
