@@ -21,9 +21,9 @@ const list = {
 		slow: []
 	},
 	states = {},
-	roleNames = ["number", "switch", "boolean", "value.temperature"],
-	roleRoles = ["value", "switch", "value", "value.temperature"],
-	roleTypes = ["number", "boolean", "boolean", "number"],
+	roleNames = ["number", "switch", "boolean", "value.temperature","json","string"],
+	roleRoles = ["value", "switch", "value", "value.temperature","value","value"],
+	roleTypes = ["number", "boolean", "boolean", "number", "string","string"],
 	reIsEvalWrite = /\$\((.+)\)/,
 	reIsMultiName = /^([^\s,\[]+)\s*(\[\s*(\w+\s*\/\s*\w*|[^\s,\]]+(\s*\,\s*[^\s,\]]+)+|\*)\s*\]\s*)?(\S*)$/,
 	reIsInfoName = /^(\w*)\s*(\(\s*([^\(\),\s]+)\s*(\,\s*\S+\s*)*\))?$/,
@@ -46,6 +46,9 @@ function xmlParseString(body) {
 			explicitArray: false,
 			explicitRoot: false,
 //			ignoreAttrs: true,
+			attrkey: '_',
+			charkey: '#',
+			childkey: '__',
 			mergeAttrs: true, 
 			trim: true,
 //			validator: (xpath, currentValue, newValue) => A.D(`${xpath}: ${currentValue} = ${newValue}`,newValue),
@@ -60,8 +63,6 @@ function xmlParseString(body) {
 
 	return (A.c2p(parser))(body);
 }
-
-
 
 class Cache {
 	constructor(fun) { // neue Einträge werden mit dieser Funktion kreiert
@@ -120,7 +121,7 @@ class JsonPath {
 	normalize(expr) {
 		var subx = [];
 		return expr.replace(/[\['](\??\(.*?\))[\]']/g, function ($0, $1) {
-				return "[#" + (subx.push($1) - 1) + "]";
+				return "[#" + (subx.push($1.replace(/,/g,'\\#').replace(/\./g,'\\§')) - 1) + "]";
 			})
 			.replace(/'?\.'?|\['?/g, ";")
 			.replace(/;;;|;;/g, ";..;")
@@ -204,7 +205,7 @@ class JsonPath {
 
 	eval(x, _v /* , _vname */ ) {
 		try {
-			return this.$ && _v && eval(x.replace(/@/g, "_v"));
+			return this.$ && _v && eval(x.replace(/\\\#/g,',').replace(/\\\§/g,'.').replace(/@/g, "_v"));
 		} catch (e) {
 			throw new SyntaxError("jsonPath: " + e.message + ": " + x.replace(/@/g, "_v").replace(/\^/g, "_a"));
 		}
@@ -330,7 +331,7 @@ function doPoll(plist) {
 		switch(A.T(value)) {
 			case 'object':
 			case 'array':
-				value = A.O(value);
+				value = JSON.stringify(value);
 				break;
 			case 'function':
 				value = `${value}`;
@@ -382,12 +383,13 @@ function doPoll(plist) {
 								jp = new JsonPath(res);
 								ma = jp.parse(item.regexp);
 //								A.D(`ma=${ma}`);
-								if (!ma || ma.length === 0)
+								if (ma && ma.length > 0)
 									res = ma;
 								break;
 							default:
 								ma = item.regexp && res.match(item.regexp);
-								ma = ma ? ma.slice(1) : null;
+								ma = ma && ma.length>1 ? ma.slice(1) : null;
+								res = ma ? ma : res;
 								break;
 						}
 						if (ma && A.T(item.id, {})) {
