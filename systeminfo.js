@@ -21,9 +21,9 @@ const list = {
 		slow: []
 	},
 	states = {},
-	roleNames = ["number", "switch", "boolean", "value.temperature","json","string"],
-	roleRoles = ["value", "switch", "value", "value.temperature","value","value"],
-	roleTypes = ["number", "boolean", "boolean", "number", "string","string"],
+	roleNames = ["number", "switch", "boolean", "value.temperature", "json", "string"],
+	roleRoles = ["value", "switch", "value", "value.temperature", "value", "value"],
+	roleTypes = ["number", "boolean", "boolean", "number", "string", "string"],
 	reIsEvalWrite = /\$\((.+)\)/,
 	reIsMultiName = /^([^\s,\[]+)\s*(\[\s*(\w+\s*\/\s*\w*|[^\s,\]]+(\s*\,\s*[^\s,\]]+)+|\*)\s*\]\s*)?(\S*)$/,
 	reIsInfoName = /^(\w*)\s*(\(\s*([^\(\),\s]+)\s*(\,\s*\S+\s*)*\))?$/,
@@ -41,25 +41,25 @@ A.init(adapter, main); // associate adapter and main with MyAdapter
 
 function xmlParseString(body) {
 
-	let valp = (str /* , name */) => !isNaN(str) ? A.number(str) : /^(?:true|false)$/i.test(str) ? str.toLowerCase() === 'true' : str,
+	let valp = (str /* , name */ ) => !isNaN(str) ? A.number(str) : /^(?:true|false)$/i.test(str) ? str.toLowerCase() === 'true' : str,
 		options = {
 			explicitArray: false,
 			explicitRoot: false,
-//			ignoreAttrs: true,
+			//			ignoreAttrs: true,
 			attrkey: '_',
 			charkey: '#',
 			childkey: '__',
-			mergeAttrs: true, 
+			mergeAttrs: true,
 			trim: true,
-//			validator: (xpath, currentValue, newValue) => A.D(`${xpath}: ${currentValue} = ${newValue}`,newValue),
-//			validator: (xpath, currentValue, newValue) => A.T(newValue,[]) && newValue.length==1 && A.T(newValue[0],[]) ? newValue[0] : newValue,
-//			attrNameProcessors: [str => str === '$' ? '_' : str], 
-			tagNameProcessors: [(str) => str.replace(reStripPrefix,'')],
+			//			validator: (xpath, currentValue, newValue) => A.D(`${xpath}: ${currentValue} = ${newValue}`,newValue),
+			//			validator: (xpath, currentValue, newValue) => A.T(newValue,[]) && newValue.length==1 && A.T(newValue[0],[]) ? newValue[0] : newValue,
+			//			attrNameProcessors: [str => str === '$' ? '_' : str], 
+			tagNameProcessors: [(str) => str.replace(reStripPrefix, '')],
 			//                attrNameProcessors: [tagnames],
-			attrValueProcessors : [valp],
+			attrValueProcessors: [valp],
 			valueProcessors: [valp]
 		},
-		parser = new xml2js.Parser(options).parseString; 
+		parser = new xml2js.Parser(options).parseString;
 
 	return (A.c2p(parser))(body);
 }
@@ -121,7 +121,7 @@ class JsonPath {
 	normalize(expr) {
 		var subx = [];
 		return expr.replace(/[\['](\??\(.*?\))[\]']/g, function ($0, $1) {
-				return "[#" + (subx.push($1.replace(/,/g,'\\#').replace(/\./g,'\\§')) - 1) + "]";
+				return "[#" + (subx.push($1.replace(/,/g, '\\#').replace(/\./g, '\\§')) - 1) + "]";
 			})
 			.replace(/'?\.'?|\['?/g, ";")
 			.replace(/;;;|;;/g, ";..;")
@@ -205,7 +205,7 @@ class JsonPath {
 
 	eval(x, _v /* , _vname */ ) {
 		try {
-			return this.$ && _v && eval(x.replace(/\\\#/g,',').replace(/\\\§/g,'.').replace(/@/g, "_v"));
+			return this.$ && _v && eval(x.replace(/\\\#/g, ',').replace(/\\\§/g, '.').replace(/@/g, "_v"));
 		} catch (e) {
 			throw new SyntaxError("jsonPath: " + e.message + ": " + x.replace(/@/g, "_v").replace(/\^/g, "_a"));
 		}
@@ -328,7 +328,7 @@ function doPoll(plist) {
 			}
 		let o = A.clone(item.opt);
 		o.id = name;
-		switch(A.T(value)) {
+		switch (A.T(value)) {
 			case 'object':
 			case 'array':
 				value = JSON.stringify(value);
@@ -336,7 +336,7 @@ function doPoll(plist) {
 			case 'function':
 				value = `${value}`;
 				break;
-			default: 
+			default:
 				break;
 		}
 		return A.makeState(o, value, true);
@@ -365,8 +365,8 @@ function doPoll(plist) {
 								typ = 'info';
 								break;
 							case 'xml':
-							typ = 'info';
-							return xmlParseString(res).then(json => (res = json, json));
+								typ = 'info';
+								return xmlParseString(res).then(json => (res = json, json));
 							default:
 								if ((jp = item.conv.match(reIsRegExp))) {
 									jp = new RegExp(jp[1], jp[2]);
@@ -382,21 +382,21 @@ function doPoll(plist) {
 							case 'info':
 								jp = new JsonPath(res);
 								ma = jp.parse(item.regexp);
-//								A.D(`ma=${ma}`);
+								//								A.D(`ma=${ma}`);
 								if (ma && ma.length > 0)
 									res = ma;
 								break;
 							default:
 								ma = item.regexp && res.match(item.regexp);
-								ma = ma && ma.length>1 ? ma.slice(1) : null;
+								ma = ma && ma.length > 1 ? ma.slice(1) : null;
 								res = ma ? ma : res;
 								break;
 						}
 						if (ma && A.T(item.id, {})) {
 							let mat = A.T(ma[0]);
-							if (mat === 'object' && id.mid === '*') 
+							if (mat === 'object' && id.mid === '*')
 								return A.seriesOf(Object.keys(ma).filter(x => ma.hasOwnProperty(x)), i => setItem(item, idid(id, i), ma[i]), 1);
-							
+
 							if (id.name && mat === 'object') {
 								if (!id.value)
 									return A.seriesOf(ma, o => A.T(o, {}) ? A.seriesOf(Object.keys(o).filter(x => o.hasOwnProperty(x)),
@@ -413,12 +413,12 @@ function doPoll(plist) {
 									return setItem(item, idid(id, id.mid[i]), ma[i]);
 								}, 1);
 							res = ma;
-						} else if(ma) 
+						} else if (ma)
 							res = ma;
 						if (A.T(item.id, ""))
 							return setItem(item, item.id, res);
-						return setItem(item, idid(id,'?'), res);
-						});
+						return setItem(item, idid(id, '?'), res);
+					});
 				});
 		}, 1)
 		.catch(e => A.W(`Error ${e} in doPoll for ${plist}`));
@@ -458,23 +458,12 @@ function main() {
 
 			case 'info':
 				ni.fun = () => {
-					function doCmd(cmd) {
-						let m = cmd.match(reIsInfoName),
-							r = {};
-						if (!m)
-							return A.D(`Invalid function statement in ${ni.name} for '${cmd}'`, null);
-						if (A.T(si[m[1]]) !== 'function')
-							return A.D(`Invalid function of 'systeminformation' in ${ni.name} for '${cmd}'`, null);
-						r.fun = m[1];
-						r.args = m[2] ? A.trim(m[2].slice(1, -1).split(',')) : [];
-						return r;
-					}
-					let cmds = A.trim(ni.source.split(',')).map(cmd => doCmd(cmd)).filter(x => !!x),
-						res = {};
-					if (cmds.length < 1)
-						return Promise.reject(`No valid function found in  'systeminformation' in ${ni.name} for '${ni.source}'`, null);
-
-					return A.seriesOf(cmds, x => A.P(si[x.fun].apply(si, x.args)).then(r => res[x.fun] = r), 1).then(() => res, () => {});
+					let m = ni.source.match(reIsInfoName);
+					if (!m)
+						return A.D(`Invalid function statement in ${ni.name} for '${reIsInfoName}'`, A.resolve(null));
+					if (A.T(si[m[1]]) !== 'function')
+						return A.D(`Invalid function of 'systeminformation' in ${ni.name} for '${reIsInfoName}'`, A.resolve(null));
+					return A.P(si[m[1]].apply(si,m[2] ? A.trim(m[2].slice(1, -1).split(',')) : [])).then(A.nop,A.nop);
 				};
 				break;
 			default:
@@ -533,22 +522,22 @@ function main() {
 				unit: unit,
 				native: {}
 			};
-		if (ni.type==='info' || ni.conv === 'xml' || ni.conv === 'json') 
-				ni.regexp = ni.regexp.trim();
+		if (ni.type === 'info' || ni.conv === 'xml' || ni.conv === 'json')
+			ni.regexp = ni.regexp.trim();
 		else {
-				try {
-					let r = ni.regexp && ni.regexp.trim(),
-						m = r.match(reIsRegExp),
-						o;
-					if (m) {
-						r = m[1];
-						o = m[2];
-					}
-					ni.regexp = r.length > 0 ? new RegExp(r, o ? o : undefined) : null;
-				} catch (e) {
-					A.W(`Error ${e} in RegExp of ${A.O(ni)}`);
-					ni.regexp = null;
+			try {
+				let r = ni.regexp && ni.regexp.trim(),
+					m = r.match(reIsRegExp),
+					o;
+				if (m) {
+					r = m[1];
+					o = m[2];
 				}
+				ni.regexp = r.length > 0 ? new RegExp(r, o ? o : undefined) : null;
+			} catch (e) {
+				A.W(`Error ${e} in RegExp of ${A.O(ni)}`);
+				ni.regexp = null;
+			}
 		}
 		opt.native.si = A.clone(ni);
 		createFunction(ni);
