@@ -1,5 +1,5 @@
 /**
- *      iobroker MyAdapter class V1.2.0 from systeminfo
+ *      iobroker MyAdapter class V1.2.1 from systeminfo
  *      (c) 2016- <frankjoke@hotmail.com>
  *      MIT License
  */
@@ -160,6 +160,9 @@ class MyAdapter {
             slog(adapter, 'info', `<span style="color:darkblue;">debug: ${str}</span>`) :
             slog(adapter, 'debug', str), val !== undefined ? val : str);
     }
+    static F() {
+        util.format.apply(null,arguments);
+    }
     static I(l, v) {
         return (slog(adapter, 'info', l), v === undefined ? l : v);
     }
@@ -286,7 +289,7 @@ class MyAdapter {
     }
 
     static O(obj, level) {
-        return util.inspect(obj, false, level || 2, false).replace(/\n/g, ' ');
+        return util.inspect(obj, { depth: level || 2}).replace(/\n/g, ' ');
     }
     static S(obj, level) {
         return typeof obj === 'string' ? obj : this.O(obj, level);
@@ -321,6 +324,10 @@ class MyAdapter {
     static includes(obj, value) {
         return this.T(obj, {}) ? obj[value] !== undefined :
             this.T(obj, []) ? obj.find(x => x === value) !== undefined : obj === value;
+    }
+
+    static ownKeys(obj) {
+			return this.T(obj, {}) ? Object.keys(obj).filter(k => obj.hasOwnProperty(k)) : [];
     }
 
     static stop(dostop, callback) {

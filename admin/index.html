@@ -271,34 +271,31 @@
 				for (var i = 0; i < names.length; i++) {
 					text += '<td>';
 					if (names[i]) {
-						if (names[i].type === 'checkbox') {
+						var val = values[v],
+							nam = names[i];
+							valnam = val[nam.name];
+						if (valnam)
+							valnam = valnam.replace(/\"/g,'&quot;');
+						else valnam = '';
+						if (nam.type === 'checkbox') {
 							text += '<input class="values-input" type="checkbox" data-index="' + v + '" data-name="' +
-								names[i].name + '" ' + (values[v][names[i].name] ? 'checked' : '') +
-								'" data-old-value="' + (values[v][names[i].name] === undefined ? '' : values[v][names[i]
-									.name
-								]) + '"/>';
-						} else if (names[i].type === 'select') {
-							text += '<select class="values-input" data-index="' + v + '" data-name="' + names[i].name +
-								'" data-old-value="' + (values[v][names[i].name] === undefined ? '' : values[v][names[i]
-									.name
-								]) + '">';
+								nam.name + '" ' + (valnam ? 'checked' : '') + '" data-old-value="' + valnam + '"/>';
+						} else if (nam.type === 'select') {
+							text += '<select class="values-input" data-index="' + v + '" data-name="' + nam.name + '" data-old-value="' + valnam + '">';
 							var options;
-							if (names[i].name === 'room') {
+							if (nam.name === 'room') {
 								options = $table.data('rooms');
 							} else {
-								options = names[i].options;
+								options = nam.options;
 							}
-							var val = (values[v][names[i].name] === undefined ? '' : values[v][names[i].name]);
 							for (var p in options) {
-								text += '<option value="' + p + '" ' + (p === val ? ' selected' : '') + '>' + options[p] +
-									'</option>';
+								text += '<option value="' + p + '" ' + (p === valnam ? ' selected' : '') + '>' + options[p] + '</option>';
 							}
 							text += '</select>';
 						} else {
-							text += '<input class="values-input" style="width: 100%" type="' + names[i].type +
-								'" data-index="' + v + '" data-name="' + names[i].name + '" value="' + (values[v][names[
-									i].name] === undefined ? '' : values[v][names[i].name]) + '"  data-old-value="' + (
-									values[v][names[i].name] === undefined ? '' : values[v][names[i].name]) + '"/>';
+							text += '<input class="values-input" style="width: 100%" type="' + nam.type + 
+								'" data-index="' + v + '" data-name="' + nam.name + '" value="' + 
+									valnam + '"  data-old-value="' + valnam + '"/>';
 						}
 					}
 

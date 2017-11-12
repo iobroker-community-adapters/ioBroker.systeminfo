@@ -27,6 +27,9 @@ Der Adapter generiert states aufgrund von Konfigurationsdaten welche:
 * Requires node >=v4.5
 
 ## Changelog
+### 0.2.0
+* First public beta includes jsonParse and WebQuery parse
+
 ### 0.1.0
 * First working instance for files, exe and systeminfo
 

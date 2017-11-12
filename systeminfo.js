@@ -12,6 +12,7 @@ const utils = require('./lib/utils'),
 	assert = require('assert'),
 	A = require('./myAdapter'),
 	si = require('systeminformation'),
+	cheerio = require('cheerio'),
 	xml2js = require('xml2js');
 
 
@@ -29,8 +30,7 @@ const list = {
 	reIsInfoName = /^(\w*)\s*(\(\s*([^\(\),\s]+)\s*(\,\s*\S+\s*)*\))?$/,
 	reIsRegExp = /^\/(.*)\/([gimy])*$/,
 	reIsObjName = /\s*(\w+)\s*\/\s*(\w*)\s*/,
-	reStripPrefix = /(?!xmlns)^.*:/,
-	reIsArgWrite = /\$0/g;
+	reStripPrefix = /(?!xmlns)^.*:/;
 
 let pollF, pollfastF, pollslowF,
 	poll = 30,
@@ -102,117 +102,89 @@ class Cache {
 }
 
 class JsonPath {
-	constructor(obj, opt) {
+	constructor(obj) {
 		this.$ = (obj && A.T(obj) === 'object') ? A.clone(obj) : {
 			empty: "Empty Object"
 		};
-		this.resultPath = opt === "PATH" || opt && opt.resultType === "PATH";
 	}
 
 	parse(expr) {
 		this.result = [];
 
 		if (expr && this.$) {
-			this.trace(this.normalize(expr).replace(/^\$;/, ""), this.$, "$");
+			var subx = [],
+				res = expr.replace(/\s*([\w\$]+)\s*(\.\s*(\w|$)+\s*)*/g, (_0) => _0.split('.').map(a => a.trim()).join('\\§'))
+				.replace(/\[(\??\([^\)\[]+\))\]/g, ($0, $1) => "[#" + (subx.push($1.trim().replace(/,/g, '\\#').replace(/\./g, '\\§')) - 1))
+				.replace(/\.|\[/g, ";")
+				.replace(/;;;|;;/g, ";..;")
+				.replace(/;$|\]$/g, "")
+				.replace(/#([0-9]+)/g, ($0, $1) => subx[$1])
+				.replace(/\\§/g, '.');
+			res = res.replace(/^\$;/, "");
+			A.D(`normalized= ${res}`, res);
+			this.trace(res.split(';').map(s => s.trim()).filter(s => s.length), this.$, "$");
 		}
 		return this.result.length ? this.result : false;
 	}
 
-	normalize(expr) {
-		var subx = [];
-		return expr.replace(/[\['](\??\(.*?\))[\]']/g, function ($0, $1) {
-				return "[#" + (subx.push($1.replace(/,/g, '\\#').replace(/\./g, '\\§')) - 1) + "]";
-			})
-			.replace(/'?\.'?|\['?/g, ";")
-			.replace(/;;;|;;/g, ";..;")
-			.replace(/;$|'?\]|'$/g, "")
-			.replace(/#([0-9]+)/g, function ($0, $1) {
-				return subx[$1];
-			});
-	}
-
-	store(p, v) {
-		if (!p)
-			return false;
-		if (!this.resultPath)
-			this.result.push(v);
-		else {
-			let x = p.split(";");
-			p = "$";
-			for (var i = 1, n = x.length; i < n; i++)
-				p += /^[0-9*]+$/.test(x[i]) ? ("[" + x[i] + "]") : ("['" + x[i] + "']");
-			this.result.push(p);
-		}
-		return true;
-	}
-
-	trace(expr, val, path) {
-		const that = this;
-		if (expr) {
-			var x = expr.split(";"),
-				loc = x.shift();
-			x = x.join(";");
-			if (val && val.hasOwnProperty(loc))
-				this.trace(x, val[loc], path + ";" + loc);
-			else if (loc === "*")
-				this.walk(loc, x, val, path, function (m, l, x, v, p) {
-					that.trace(m + ";" + x, v, p);
-				});
-			else if (loc === "..") {
-				this.trace(x, val, path);
-				this.walk(loc, x, val, path, function (m, l, x, v, p) {
-					typeof v[m] === "object" && that.trace("..;" + x, v[m], p + ";" + m);
-				});
-			} else if (/,/.test(loc)) { // [name1,name2,...]
-				for (var s = loc.split(/'?,'?/), i = 0, n = s.length; i < n; i++)
-					this.trace(s[i] + ";" + x, val, path);
-			} else if (/^\(.*?\)$/.test(loc)) // [(expr)]
-				this.trace(this.eval(loc, val, path.substr(path.lastIndexOf(";") + 1)) + ";" + x, val, path);
-			else if (/^\?\(.*?\)$/.test(loc)) // [?(expr)]
-				this.walk(loc, x, val, path, function (m, l, x, v, p) {
-					if (that.eval(l.replace(/^\?\((.*?)\)$/, "$1"), v[m], m)) that.trace(m + ";" + x, v, p);
-				});
-			else if (/^(-?[0-9]*):(-?[0-9]*):?([0-9]*)$/.test(loc)) {
-				let len = val.length,
-					start = 0,
-					end = len,
-					step = 1;
-				loc.replace(/^(-?[0-9]*):(-?[0-9]*):?(-?[0-9]*)$/g, function ($0, $1, $2, $3) {
-					start = parseInt($1 || start);
-					end = parseInt($2 || end);
-					step = parseInt($3 || step);
-				});
-				start = (start < 0) ? Math.max(0, start + len) : Math.min(len, start);
-				end = (end < 0) ? Math.max(0, end + len) : Math.min(len, end);
-				for (var j = start; j < end; j += step)
-					this.trace(j + ";" + x, val, path);
-			}
-		} else
-			that.store(path, val);
-	}
-
-	walk(loc, expr, val, path, f) {
-		if (val instanceof Array) {
-			for (var i = 0, n = val.length; i < n; i++)
-				if (i in val)
-					f(i, loc, expr, val, path);
-		} else if (typeof val === "object") {
-			for (var m in val)
-				if (val.hasOwnProperty(m))
-					f(m, loc, expr, val, path);
-		}
-	}
-
-	eval(x, _v /* , _vname */ ) {
+	myeval(x, _v /* , _vname */ ) {
+		let $ = this.$; //	    A.D(`eval:[${x}]`);
 		try {
-			return this.$ && _v && eval(x.replace(/\\\#/g, ',').replace(/\\\§/g, '.').replace(/@/g, "_v"));
+			let res = $ && _v && eval(x.replace(/\\\#/g, ',').replace(/@/g, "_v")); // A.D(`eval:[${x}] returns ${res} and had ${A.O(_v)}`);
+			return res;
 		} catch (e) {
 			throw new SyntaxError("jsonPath: " + e.message + ": " + x.replace(/@/g, "_v").replace(/\^/g, "_a"));
 		}
 	}
 
-}
+	trace(x, val) {
+		function walk(loc, expr, val, f) {
+			if (val instanceof Array)
+				val.map((c, i) => c !== undefined ? f(i, loc, expr, val) : null);
+			else if (typeof val === "object")
+				Object.keys(val).map(m => val.hasOwnProperty(m) ? f(m, loc, expr, val) : null);
+		}
+		const that = this;
+		if (!x || x.length === 0)
+			return this.result.push(val);
+		var loc = x.shift(); //		A.D(`loc: '${loc}', x:[${x}],  val:${val}`);
+		if (loc === undefined || loc.length === 0)
+			return this.trace(x, val);
+		if (/^\(.*?\)$/.test(loc)) // [(expr)]
+			this.trace([that.myeval(loc, val)].concat(x), val);
+		else if (/^\?\(.*?\)$/.test(loc)) // [?(expr)]
+			walk(loc, x, val, (m, l, x, v) => that.myeval(l.slice(2, -1), v[m]) ? that.trace([m].concat(x), v) : null);
+		else if (/^(-?[0-9]*):(-?[0-9]*):?([0-9]*)$/.test(loc)) {
+			let len = val.length,
+				start = 0,
+				end = len,
+				step = 1;
+			loc.replace(/^(-?[0-9]*):(-?[0-9]*):?(-?[0-9]*)$/g, function ($0, $1, $2, $3) {
+				start = parseInt($1 || start);
+				end = parseInt($2 || end);
+				step = parseInt($3 || step);
+			});
+			start = (start < 0) ? Math.max(0, start + len) : Math.min(len, start);
+			end = (end < 0) ? Math.max(0, end + len) : Math.min(len, end);
+			for (var j = start; j < end; j += step)
+				this.trace([j].concat(x), val);
+		} else if (/,/.test(loc)) { // [name1,name2,...]
+			loc.split(',').map(s => that.trace([s.trim()].concat(x), val));
+		} else if (/[\w\$]+\s*\.\s*[\w\$]+/.test(loc)) {
+			let o = loc.split('.').map(s => s.trim());
+			if (val && val.hasOwnProperty(o[0]))
+				this.trace([o.slice(1).join('.')].concat(x), val[o[0]]);
+		} else if (val && val.hasOwnProperty(loc))
+			this.trace(Array.from(x), val[loc]);
+		else if (loc === "*")
+			walk(loc, x, val, (m, l, x, v) => that.trace([m].concat(x), v));
+		else if (loc === "..") { //		    A.D(`I will do '..' on [${x}]`);
+			this.trace(Array.from(x), val);
+			walk(loc, x, val, (m, l, x, v) => typeof v[m] === "object" ? that.trace(['..'].concat(x), v[m]) : null);
+		}
+	}
 
+}
 
 A.stateChange = function (id, state) {
 	//	A.D(`stateChange of "${id}": ${A.O(state)}`); 
@@ -273,9 +245,130 @@ A.messages = (msg) => {
 			return Promise.reject(A.D(`Invalid command "${msg.command}" received with message ${A.O(msg)}`));
 	}
 };
-
-
 */
+
+class WebQuery {
+	constructor(item) {
+		this._$ = A.T(item, '') ? cheerio.load(item) : item;
+	}
+
+	static eval(fun, _v, con) {
+		try {
+			let res = eval(fun.replace(/@/g,'_v')); // A.D(`eval:[${x}] returns ${res} and had ${A.O(_v)}`);
+			return res;
+		} catch (e) {
+			throw new SyntaxError(`eval: ${e.message}: ${fun} on ${_v} with ${con}`);
+		}
+
+	}
+	handle(opt, con) {
+		//		A.D(A.O(opt));
+		function norm(opt, name) {
+			let copt = {};
+			if (A.T(opt, '')) {
+				copt._sel = opt;
+				opt = copt;
+			} else if (!A.T(opt, {}))
+				return copt;
+			for (let i of A.ownKeys(opt))
+				if (!i.startsWith('_'))
+					copt[i] = opt[i];
+			if (opt._notrim)
+				copt._notrim = opt._notrim;
+			if (name || opt._name)
+				copt._name = name ? name : opt._name;
+			if (opt._conv)
+				copt._conv = opt._conv;
+			if (opt._filter)
+				copt._filter = opt._filter;
+			if (opt._fun)
+				copt._fun = opt._fun;
+			if (opt._eq)
+				copt._eq = opt._eq;
+			if (opt._sel)
+				copt._sel = opt._sel;
+			return copt;
+		}
+
+		opt = norm(opt);
+		let data = {},
+			name,
+			res = opt._sel ? this._$(opt._sel, con) : con;
+
+		if (A.T(opt._eq, 0))
+			res = res.eq(opt._eq);
+
+		for (name of A.ownKeys(opt)) {
+			if (name.startsWith('_'))
+				continue;
+
+			let nopt = norm(opt[name]),
+				m = name.match(/^([$\w]*)(\!?)\[(.+)\]$/),
+				docs,
+				items,
+				item;
+
+			if (m) {
+				let nam = m[1].trim(),
+					ex = m[2],
+					sel = m[3].trim(),
+					eq = parseInt(sel).toString() === sel;
+
+				if (nam)
+					name = nam;
+
+				if (!ex && eq) {
+					sel = parseInt(sel);
+					let r = res.eq(sel);
+					if (nam) {
+						data[nam] = this.handle(nopt, r);
+						continue;
+					} else
+						res = r;
+				} else if (ex) {
+					let r = WebQuery.eval(sel, res, con);
+					if (nam) {
+						data[nam] = this.handle(nopt, r);
+						continue;
+					} else
+						res = r;
+				} else {
+
+					docs = data[name] = [];
+					items = this._$(sel, res);
+
+					for (let i = 0; i < items.length; ++i) {
+						item = items.eq(i);
+						if ((A.T(opt._filter) === 'function' && opt._filter(item, this._$)) ||
+							(A.T(opt._filter, '') && WebQuery.eval(opt._filter, item, con))) {
+							let cdoc = this.handle(nopt, item);
+							docs.push(cdoc);
+						}
+
+					}
+					continue;
+				}
+
+			} else {
+				data[name] = this.handle(nopt, res);
+			}
+		}
+		if (A.ownKeys(data).length)
+			return data;
+		let value = typeof opt._fun === 'function' ? opt._fun(res) : A.T(opt._fun, '') ? WebQuery.eval(opt._fun, res) : res && res.text ? res.text() : res;
+
+		if (!opt._notrim && A.T(value, ''))
+			value = value.trim();
+
+		if (opt._conv) {
+			if (typeof opt._conv === 'function')
+				value = opt._conv(value, res);
+			else if (typeof opt._conv === 'string')
+				value = WebQuery.eval(opt._conv, value, res);
+		}
+		return value;
+	}
+}
 
 function writeInfo(id, state) {
 	if (!states[id] || !states[id].wfun)
@@ -285,8 +378,7 @@ function writeInfo(id, state) {
 	A.D(`new state:${A.O(state)} for ${id}`);
 	switch (obj.wtext) {
 		case 'eval':
-			let e = obj.write.replace(reIsArgWrite, val);
-			val = eval(e);
+			val = WebQuery.eval(obj.write,val);
 			break;
 		default:
 			break;
@@ -315,12 +407,13 @@ function doPoll(plist) {
 				case '!boolean':
 					value = !A.parseLogic(value);
 					break;
+				case 'html':
 				case 'json':
 				case 'xml':
 					break;
 				default:
 					try {
-						value = eval(item.conv.replace(reIsArgWrite, value));
+						value = WebQuery.eval(item.conv,value);
 					} catch (e) {
 						A.W(`convert '${item.conv}' for item ${name} failed with: ${e}`);
 					}
@@ -360,6 +453,12 @@ function doPoll(plist) {
 						typ = item.type;
 					return A.resolve(res).then(res => {
 						switch (item.conv) {
+							case 'html':
+								typ = 'info';
+								if (A.T(item.regexp,{})) {
+									res = item.regexp.conv(res);
+								}  
+								break;
 							case 'json':
 								res = A.J(res);
 								typ = 'info';
@@ -376,13 +475,13 @@ function doPoll(plist) {
 								break;
 						}
 						return res;
-					}).then(res => {
+					}).catch(e => A.W(`Error ${e} in doPoll for ${item.name}`))
+					.then(res => {
 						A.D(`${item.name}  received ${A.O(res,1)}`);
 						switch (typ) {
 							case 'info':
 								jp = new JsonPath(res);
-								ma = jp.parse(item.regexp);
-								//								A.D(`ma=${ma}`);
+								ma = jp.parse( item.conv ==='html' ? item.regexp.selection : item.regexp);
 								if (ma && ma.length > 0)
 									res = ma;
 								break;
@@ -419,9 +518,8 @@ function doPoll(plist) {
 							return setItem(item, item.id, res);
 						return setItem(item, idid(id, '?'), res);
 					});
-				});
-		}, 1)
-		.catch(e => A.W(`Error ${e} in doPoll for ${plist}`));
+				}).catch(e => A.W(`Error ${e} in doPoll for ${item.name}`));
+		}, 1);
 }
 
 function main() {
@@ -439,8 +537,7 @@ function main() {
 					let w = ni.write;
 					let e = w.match(reIsEvalWrite);
 					while (e) {
-						let a = e[1].replace(reIsArgWrite, val);
-						a = eval(a);
+						let a = WebQuery.eval(e[1],val);
 						w = w.replace(reIsEvalWrite, a);
 						e = w.match(reIsEvalWrite);
 					}
@@ -454,16 +551,29 @@ function main() {
 				break;
 			case 'web':
 				ni.fun = () => A.get(ni.source);
+				if (ni.conv === 'html' && /^\{.+\}$/.test(ni.regexp)) 
+					try {
+					let cmd = WebQuery.eval('(' + ni.regexp + ')'),
+						keys = A.ownKeys(cmd),
+						sel = keys[0],
+						webQuery = cmd[sel];
+					if (keys.length === 1 && A.T(webQuery, {}))
+						ni.regexp = {
+							selection: sel,
+							conv: (res) => (new WebQuery(res)).handle(webQuery)
+						};
+					else A.W(`Invalid Web query in regexp for ${ni.name}`);
+				} catch(e) {A.W(`Invalid Web query for ${ni.name} cased error ${e}`);}
 				break;
 
 			case 'info':
 				ni.fun = () => {
 					let m = ni.source.match(reIsInfoName);
 					if (!m)
-						return A.D(`Invalid function statement in ${ni.name} for '${reIsInfoName}'`, A.resolve(null));
+						return A.W(`Invalid function statement in ${ni.name} for '${reIsInfoName}'`, A.resolve(null));
 					if (A.T(si[m[1]]) !== 'function')
-						return A.D(`Invalid function of 'systeminformation' in ${ni.name} for '${reIsInfoName}'`, A.resolve(null));
-					return A.P(si[m[1]].apply(si,m[2] ? A.trim(m[2].slice(1, -1).split(',')) : [])).then(A.nop,A.nop);
+						return A.W(`Invalid function of 'systeminformation' in ${ni.name} for '${reIsInfoName}'`, A.resolve(null));
+					return A.P(si[m[1]].apply(si, m[2] ? A.trim(m[2].slice(1, -1).split(',')) : [])).then(A.nop, A.nop);
 				};
 				break;
 			default:
@@ -481,6 +591,8 @@ function main() {
 	pollslow = tint(adapter.config.poll, 300);
 
 	for (let item of adapter.config.items) {
+		if (item.name.startsWith('-'))
+			continue;
 		let ni = A.clone(item);
 		let ir = item.name.trim().match(reIsMultiName);
 		if (!ir) {
@@ -522,7 +634,7 @@ function main() {
 				unit: unit,
 				native: {}
 			};
-		if (ni.type === 'info' || ni.conv === 'xml' || ni.conv === 'json')
+		if (ni.type === 'info' || ni.conv === 'xml' || ni.conv === 'json' || ni.conv === 'html')
 			ni.regexp = ni.regexp.trim();
 		else {
 			try {

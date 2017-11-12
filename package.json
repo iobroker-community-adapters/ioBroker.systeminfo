@@ -1,6 +1,6 @@
 {
   "name": "iobroker.systeminfo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "ioBroker systeminfo Adapter",
   "author": "Frank Joke <frankjoke@hotmail.com>",
   "contributors": [],
@@ -20,6 +20,7 @@
     "node": ">=4.3.0"
   },
   "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
     "systeminformation": "^3.32.1"
   },
   "devDependencies": {
