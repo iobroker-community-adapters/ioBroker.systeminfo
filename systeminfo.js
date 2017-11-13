@@ -3,7 +3,7 @@
  *      (c) 2016- <frankjoke@hotmail.com>
  *      MIT License
  */
-/*jshint -W089, -W030, -W061 */
+/*jshint -W089, -W030, -W061, -W083 */
 // jshint node:true, esversion:6, strict:true, undef:true, unused:true
 "use strict";
 const utils = require('./lib/utils'),
@@ -113,13 +113,20 @@ class JsonPath {
 
 		if (expr && this.$) {
 			var subx = [],
-				res = expr.replace(/\s*([\w\$]+)\s*(\.\s*(\w|$)+\s*)*/g, (_0) => _0.split('.').map(a => a.trim()).join('\\§'))
-				.replace(/\[(\??\([^\)\[]+\))\]/g, ($0, $1) => "[#" + (subx.push($1.trim().replace(/,/g, '\\#').replace(/\./g, '\\§')) - 1))
-				.replace(/\.|\[/g, ";")
-				.replace(/;;;|;;/g, ";..;")
-				.replace(/;$|\]$/g, "")
-				.replace(/#([0-9]+)/g, ($0, $1) => subx[$1])
-				.replace(/\\§/g, '.');
+				subs = [],
+				res = expr.replace(/([^\\]"|^"|\\\\")(\\"|[^"])+"/g, ($0) => {
+					let t = $0[1] === '"' ? $0[0] : '',
+						s = t === '' ? $0.slice(1, -1) : $0.slice(2, -1);
+					return t + "__" + (subs.push(s.replace(/\\"/g, '"')) - 1) + '__';
+				});
+			res = res.replace(/\s*([\w\$]+)\s*(\.\s*(\w|$)+\s*)*/g, (_0) => _0.split('.').map(a => a.trim()).join('\\§'));
+			res = res.replace(/\[(\??\(.+\))\]/g, ($0, $1) => "[#" + (subx.push($1.trim().replace(/,/g, '\\#').replace(/\./g, '\\§')) - 1));
+			res = res.replace(/\.|\]\s*\[|\];|\[/g, ";");
+			res = res.replace(/;;;|;;/g, ";..;");
+			res = res.replace(/;$|\]$/g, "");
+			res = res.replace(/#(\d+)/g, ($0, $1) => subx[$1]);
+			res = res.replace(/__(\d+)__/g, ($0, $1) => subs[$1]);
+			res = res.replace(/\\§/g, '.');
 			res = res.replace(/^\$;/, "");
 			A.D(`normalized= ${res}`, res);
 			this.trace(res.split(';').map(s => s.trim()).filter(s => s.length), this.$, "$");
@@ -168,15 +175,15 @@ class JsonPath {
 			end = (end < 0) ? Math.max(0, end + len) : Math.min(len, end);
 			for (var j = start; j < end; j += step)
 				this.trace([j].concat(x), val);
-		} else if (/,/.test(loc)) { // [name1,name2,...]
+		} else if (val && val.hasOwnProperty(loc))
+			this.trace(Array.from(x), val[loc]);
+		else if (/,/.test(loc)) { // [name1,name2,...]
 			loc.split(',').map(s => that.trace([s.trim()].concat(x), val));
 		} else if (/[\w\$]+\s*\.\s*[\w\$]+/.test(loc)) {
 			let o = loc.split('.').map(s => s.trim());
 			if (val && val.hasOwnProperty(o[0]))
 				this.trace([o.slice(1).join('.')].concat(x), val[o[0]]);
-		} else if (val && val.hasOwnProperty(loc))
-			this.trace(Array.from(x), val[loc]);
-		else if (loc === "*")
+		} else if (loc === "*")
 			walk(loc, x, val, (m, l, x, v) => that.trace([m].concat(x), v));
 		else if (loc === "..") { //		    A.D(`I will do '..' on [${x}]`);
 			this.trace(Array.from(x), val);
@@ -254,7 +261,7 @@ class WebQuery {
 
 	static eval(fun, _v, con) {
 		try {
-			let res = eval(fun.replace(/@/g,'_v')); // A.D(`eval:[${x}] returns ${res} and had ${A.O(_v)}`);
+			let res = eval(fun.replace(/@/g, '_v')); // A.D(`eval:[${x}] returns ${res} and had ${A.O(_v)}`);
 			return res;
 		} catch (e) {
 			throw new SyntaxError(`eval: ${e.message}: ${fun} on ${_v} with ${con}`);
@@ -378,7 +385,7 @@ function writeInfo(id, state) {
 	A.D(`new state:${A.O(state)} for ${id}`);
 	switch (obj.wtext) {
 		case 'eval':
-			val = WebQuery.eval(obj.write,val);
+			val = WebQuery.eval(obj.write, val);
 			break;
 		default:
 			break;
@@ -413,7 +420,7 @@ function doPoll(plist) {
 					break;
 				default:
 					try {
-						value = WebQuery.eval(item.conv,value);
+						value = WebQuery.eval(item.conv, value);
 					} catch (e) {
 						A.W(`convert '${item.conv}' for item ${name} failed with: ${e}`);
 					}
@@ -442,22 +449,22 @@ function doPoll(plist) {
 	A.D(`I should poll ${plist.map(x => x.id)} now!`);
 	const caches = {};
 	return A.seriesOf(plist, item => {
-			if (!item.fun) return Promise.reject(`Undefined function in ${A.O(item)}`);
-			var ca = item.type + item.source;
-			if (!caches[ca])
-				caches[ca] = new Cache();
-			return caches[ca].cacheItem(ca, item.fun)
-				.then(res => {
-					let ma, jp,
-						id = item.id,
-						typ = item.type;
-					return A.resolve(res).then(res => {
+		if (!item.fun) return Promise.reject(`Undefined function in ${A.O(item)}`);
+		var ca = item.type + item.source;
+		if (!caches[ca])
+			caches[ca] = new Cache();
+		return caches[ca].cacheItem(ca, item.fun)
+			.then(res => {
+				let ma, jp,
+					id = item.id,
+					typ = item.type;
+				return A.resolve(res).then(res => {
 						switch (item.conv) {
 							case 'html':
 								typ = 'info';
-								if (A.T(item.regexp,{})) {
+								if (A.T(item.regexp, {})) {
 									res = item.regexp.conv(res);
-								}  
+								}
 								break;
 							case 'json':
 								res = A.J(res);
@@ -481,7 +488,7 @@ function doPoll(plist) {
 						switch (typ) {
 							case 'info':
 								jp = new JsonPath(res);
-								ma = jp.parse( item.conv ==='html' ? item.regexp.selection : item.regexp);
+								ma = jp.parse(item.conv === 'html' ? item.regexp.selection : item.regexp);
 								if (ma && ma.length > 0)
 									res = ma;
 								break;
@@ -513,13 +520,13 @@ function doPoll(plist) {
 								}, 1);
 							res = ma;
 						} else if (ma)
-							res = ma;
+							res = A.T(ma, []) && ma.length === 1 && typ === 'info' ? ma[0] : ma;
 						if (A.T(item.id, ""))
 							return setItem(item, item.id, res);
 						return setItem(item, idid(id, '?'), res);
 					});
-				}).catch(e => A.W(`Error ${e} in doPoll for ${item.name}`));
-		}, 1);
+			}).catch(e => A.W(`Error ${e} in doPoll for ${item.name}`));
+	}, 1);
 }
 
 function main() {
@@ -527,58 +534,6 @@ function main() {
 		if (str && !isNaN(parseInt(str)))
 			return parseInt(str);
 		return def || 0;
-	}
-
-	function createFunction(ni) {
-		switch (ni.type) {
-			case 'exec':
-				ni.fun = () => A.exec(ni.source).then(x => x.trim());
-				ni.wfun = (val) => {
-					let w = ni.write;
-					let e = w.match(reIsEvalWrite);
-					while (e) {
-						let a = WebQuery.eval(e[1],val);
-						w = w.replace(reIsEvalWrite, a);
-						e = w.match(reIsEvalWrite);
-					}
-					return A.exec(w).then(A.nop, A.D);
-				};
-				break;
-			case 'file':
-				ni.fun = () => A.readFile(ni.source, 'utf8').then(x => x.trim());
-				ni.wfun = (val) => A.writeFile(ni.source, val.toString(), 'utf8');
-				ni.wtext = 'eval';
-				break;
-			case 'web':
-				ni.fun = () => A.get(ni.source);
-				if (ni.conv === 'html' && /^\{.+\}$/.test(ni.regexp)) 
-					try {
-					let cmd = WebQuery.eval('(' + ni.regexp + ')'),
-						keys = A.ownKeys(cmd),
-						sel = keys[0],
-						webQuery = cmd[sel];
-					if (keys.length === 1 && A.T(webQuery, {}))
-						ni.regexp = {
-							selection: sel,
-							conv: (res) => (new WebQuery(res)).handle(webQuery)
-						};
-					else A.W(`Invalid Web query in regexp for ${ni.name}`);
-				} catch(e) {A.W(`Invalid Web query for ${ni.name} cased error ${e}`);}
-				break;
-
-			case 'info':
-				ni.fun = () => {
-					let m = ni.source.match(reIsInfoName);
-					if (!m)
-						return A.W(`Invalid function statement in ${ni.name} for '${reIsInfoName}'`, A.resolve(null));
-					if (A.T(si[m[1]]) !== 'function')
-						return A.W(`Invalid function of 'systeminformation' in ${ni.name} for '${reIsInfoName}'`, A.resolve(null));
-					return A.P(si[m[1]].apply(si, m[2] ? A.trim(m[2].slice(1, -1).split(',')) : [])).then(A.nop, A.nop);
-				};
-				break;
-			default:
-				A.W(`Not implemented type ${ni.type}`);
-		}
 	}
 
 	A.I(`Startup Systeminfo Adapter ${A.ains}: ${A.O(adapter.config)}`);
@@ -652,7 +607,58 @@ function main() {
 			}
 		}
 		opt.native.si = A.clone(ni);
-		createFunction(ni);
+		switch (ni.type) {
+			case 'exec':
+				ni.fun = () => A.exec(ni.source).then(x => x.trim());
+				ni.wfun = (val) => {
+					let w = ni.write;
+					let e = w.match(reIsEvalWrite);
+					while (e) {
+						let a = WebQuery.eval(e[1], val);
+						w = w.replace(reIsEvalWrite, a);
+						e = w.match(reIsEvalWrite);
+					}
+					return A.exec(w).then(A.nop, A.D);
+				};
+				break;
+			case 'file':
+				ni.fun = () => A.readFile(ni.source, 'utf8').then(x => x.trim());
+				ni.wfun = (val) => A.writeFile(ni.source, val.toString(), 'utf8');
+				ni.wtext = 'eval';
+				break;
+			case 'web':
+				ni.fun = () => A.get(ni.source);
+				if (ni.conv === 'html' && /^\{.+\}$/.test(ni.regexp))
+					try {
+						let cmd = WebQuery.eval('(' + ni.regexp + ')'),
+							keys = A.ownKeys(cmd),
+							sel = keys[0],
+							webQuery = cmd[sel];
+						if (keys.length === 1 && A.T(webQuery, {}))
+							ni.regexp = {
+								selection: sel,
+								conv: (res) => (new WebQuery(res)).handle(webQuery)
+							};
+						else A.W(`Invalid Web query in regexp for ${ni.name}`);
+					} catch (e) {
+						A.W(`Invalid Web query for ${ni.name} cased error ${e}`);
+					}
+				break;
+
+			case 'info':
+				ni.fun = () => {
+					let m = ni.source.match(reIsInfoName);
+					if (!m)
+						return A.W(`Invalid function statement in ${ni.name} for '${reIsInfoName}'`, A.resolve(null));
+					if (A.T(si[m[1]]) !== 'function')
+						return A.W(`Invalid function of 'systeminformation' in ${ni.name} for '${reIsInfoName}'`, A.resolve(null));
+					return A.P(si[m[1]].apply(si, m[2] ? A.trim(m[2].slice(1, -1).split(',')) : [])).then(A.nop, A.nop);
+				};
+				break;
+			default:
+				A.W(`Not implemented type ${ni.type}`);
+		}
+
 		ni.opt = opt;
 		list[ni.poll].push(ni);
 
