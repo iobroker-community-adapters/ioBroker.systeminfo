@@ -391,7 +391,7 @@ function writeInfo(id, state) {
 }
 
 function setItem(item, name, value) {
-//	A.D(`setItem ${name} to ${A.O(value)} with ${item.type};${item.conv};${item.role}`);
+	//	A.D(`setItem ${name} to ${A.O(value)} with ${item.type};${item.conv};${item.role}`);
 	if (!states[name])
 		states[name] = item;
 	if (item.conv)
@@ -447,7 +447,7 @@ function doPoll(plist) {
 	}
 	if (plist.length === 0)
 		return;
-//	A.D(`I should poll ${plist.map(x => x.id)} now!`);
+	//	A.D(`I should poll ${plist.map(x => x.id)} now!`);
 	const caches = {};
 	return A.seriesOf(plist, item => {
 		if (!item.fun) return Promise.reject(`Undefined function in ${A.O(item)}`);
@@ -661,7 +661,7 @@ function main() {
 		let sch = item.sched ? item.sched.trim() : '',
 			scht = sch.match(reIsTime);
 		if (scht) {
-			if (scht[3] === undefined) 
+			if (scht[3] === undefined)
 				scht[3] = A.obToArray(list).length % 58 + 1;
 			sch = `${scht[3]} ${scht[2]} ${scht[1]} * * *`;
 		}
@@ -675,9 +675,13 @@ function main() {
 		} else A.W(`Invalid schedule in item ${item.name}`);
 
 	}
-
+	if (A.debug)
+		A.makeState("_config", JSON.stringify({
+			startup: adapter.config.startup,
+			items: adapter.config.items
+		}), true);
 	A.seriesOf(A.trim(adapter.config.startup.split('\n')), x =>
-			A.exec(x).then(A.nop, A.D), 10)
+			!x.startsWith('#') ? A.exec(x).then(A.nop, A.D) : A.resolve(), 10)
 		.then(() => doPoll())
 		.then(() => A.getObjectList({
 				startkey: A.ain,

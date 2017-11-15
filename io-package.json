@@ -48,72 +48,152 @@
         ]
     },
     "native": {
-        "poll": "10",
-        "pollfast": "2",
-        "pollslow": "300",
-        "startup": "gpio mode 1 output",
+        "startup": "#gpio mode 1 output",
         "items": [{
-                "name": "System.SOC_Temp",
-                "type": "file",
-                "source": "/sys/class/thermal/thermal_zone0/temp",
-                "regexp": "",
-                "conv": "parseFloat($0)",
-                "role": "value.temperature/°C",
-                "write": "",
-                "schedule": "1 * * * * *"
-            },
-            {
-                "name": "System.(Memory_total, Memory_used, Memory_free, Memory_available)",
-                "type": "exec",
-                "source": "free -k",
-                "regexp": "^Mem \\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\.+(\\d+)$",
-                "conv": "[parseInt($1), parseInt($2), parseInt($3), parseInt($4)]",
-                "role": "intvalue/kb",
-                "write": "",
-                "schedule": "1 * * * * *"
-            },
-            {
-                "name": "System.(Swap.total, Swap.used, Swap.free)",
-                "type": "exec",
-                "source": "free -k",
-                "regexp": "^Swap \\s+(\\d+)\\s+(\\d+)\\.+(\\d+)$",
-                "conv": "[parseInt($1), parseInt($2), parseInt($3)]",
-                "role": "intvalue/kb",
-                "write": "",
-                "schedule": "1 * * * * *"
-            },
-            {
-                "name": "GPIO.0",
-                "type": "exec",
-                "source": "gpio read 1",
-                "regexp": "",
-                "conv": "A.parseLogic($0)",
-                "role": "switch",
-                "write": "gpio write 0 $($0 ? 1 : 0)",
-                "schedule": "1 * * * * *"
-            },
-            {
-                "name": "System.Led_Green",
-                "type": "sys",
-                "source": "/sys/class/leds/green_led/brightness",
-                "regexp": "",
-                "conv": "A.parseLogic($0)",
-                "role": "switch",
-                "write": "true",
-                "schedule": "1 * * * * *"
-            },
-            {
-                "name": "System.Led_Red",
-                "type": "sys",
-                "source": "/sys/class/leds/red_led/brightness",
-                "regexp": "",
-                "conv": "A.parseLogic($0)",
-                "role": "switch",
-                "write": "true",
-                "schedule": "1 * * * * *"
-            }
-        ]
-
+            "name": "System.SOC_Temp",
+            "type": "file",
+            "source": "/sys/class/thermal/thermal_zone0/temp",
+            "regexp": "",
+            "conv": "number",
+            "role": "value.temperature|°C",
+            "write": "",
+            "sched": "*/2 * * * *"
+        }, {
+            "name": "System.Memory_[used, free, available]",
+            "type": "exec",
+            "source": "free -k",
+            "regexp": "Mem\\:\\s+\\d+\\s+(\\d+)\\s+(\\d+)\\s+\\d+\\s+\\d+\\s+(\\d+)",
+            "conv": "@/1000",
+            "role": "number|MB",
+            "write": "",
+            "sched": "1 * * * * "
+        }, {
+            "name": "System.Swap_[total, used, free]",
+            "type": "exec",
+            "source": "free -k",
+            "regexp": "/Swap\\:\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)/m",
+            "conv": "@/1000",
+            "role": "number|MB",
+            "write": "",
+            "sched": "1 * * * * "
+        }, {
+            "name": "GPIO.1",
+            "type": "exec",
+            "source": "gpio read 1",
+            "regexp": "",
+            "conv": "!parseInt(@)",
+            "role": "switch",
+            "write": "gpio write 1 @(@ ?  '0' : '1')",
+            "sched": "*/20 * * * * *"
+        }, {
+            "name": "System.Led_Green",
+            "type": "file",
+            "source": "/sys/class/leds/green_led/brightness",
+            "regexp": "",
+            "conv": "boolean",
+            "role": "switch",
+            "write": "@ ? '1' : '0' ",
+            "sched": "*/6:1"
+        }, {
+            "name": "System.Led_Red",
+            "type": "file",
+            "source": "/sys/class/leds/red_led/brightness",
+            "regexp": "",
+            "conv": "boolean",
+            "role": "switch",
+            "write": "@ ? '1' : '0'",
+            "sched": "*/6:1"
+        }, {
+            "name": "ECB.[currency/rate]",
+            "type": "web",
+            "source": "http://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
+            "regexp": "Cube.Cube.Cube[?(@.currency=='USD' || @.currency=='GBP')]",
+            "conv": "xml",
+            "role": "number | €/?",
+            "write": "",
+            "sched": "19:10:10"
+        }, {
+            "name": "-Test.System[*]",
+            "type": "info",
+            "source": "system",
+            "regexp": "*",
+            "conv": "",
+            "role": "",
+            "write": "",
+            "sched": ""
+        }, {
+            "name": "Test.System.[*]",
+            "type": "info",
+            "source": "system",
+            "regexp": "*",
+            "conv": "",
+            "role": "",
+            "write": "",
+            "sched": ""
+        }, {
+            "name": "-TestSystem.processes.[pid/]",
+            "type": "info",
+            "source": "processes",
+            "regexp": "list[?(@.user == 'pi')]",
+            "conv": "",
+            "role": "",
+            "write": "",
+            "sched": ""
+        }, {
+            "name": "HPC56C03-PS7520.[name/value]",
+            "type": "web",
+            "source": "http://HPC56C03-PS7520/DevMgmt/ConsumableConfigDyn.xml",
+            "regexp": "ConsumableInfo[?(@.Capacity)][(@.res = {name:@.ConsumableLabelCode, value: @.ConsumablePercentageLevelRemaining + ', '+@.ConsumableIcon.Shape+', '+@.Installation.Date+', '+@.ConsumableSelectibilityNumber},'res')]",
+            "conv": "xml",
+            "role": "json",
+            "write": "",
+            "sched": "*/6:3"
+        }, {
+            "name": "-jsontest",
+            "type": "web",
+            "source": "http://HPC56C03-PS7520/DevMgmt/ConsumableConfigDyn.xml",
+            "regexp": "ConsumableInfo[?(@.Capacity)].ConsumableLabelCode",
+            "conv": "xml",
+            "role": "json",
+            "write": "",
+            "sched": ""
+        }, {
+            "name": "UWZ",
+            "type": "web",
+            "source": "http://feed.alertspro.meteogroup.com/AlertsPro/AlertsProPollService.php?method=getWarning&language=de&areaID=UWZAT02402",
+            "regexp": "results",
+            "conv": "json",
+            "role": "json",
+            "write": "",
+            "sched": "*:1"
+        }, {
+            "name": "TestSystem.processes.[command/pcpu]",
+            "type": "info",
+            "source": "processes",
+            "regexp": "list[?(@.user == 'pi')]",
+            "conv": "",
+            "role": "",
+            "write": "",
+            "sched": "*:2"
+        }, {
+            "name": "-XS2.[name/value]",
+            "type": "web",
+            "source": "http://xs1/control.html'",
+            "regexp": "{\"l[?(@.value  !== null )]\": {\"l[tr]\": { '![@.children()]':0, name: {_eq:1}, value: {_eq:2, _conv:\"parseInt(@.slice(0,-1))\"}}, _filter: ($) => $[0].childNodes.length==3}}",
+            "conv": "html",
+            "role": "",
+            "write": "",
+            "sched": "`:*:*/20"
+        }, {
+            "name": "-HPE",
+            "type": "web",
+            "source": "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=HPE&apikey=4Z0C3HH8ODGH8R1R",
+            "regexp": "\"Time Series (Daily)\"[(Object.keys(@)[0])].\"5. adjusted close\"",
+            "conv": "json",
+            "role": "number|$",
+            "write": "",
+            "sched": "19:10:10"
+        }]
     },
     "objects": [],
     "config": {
