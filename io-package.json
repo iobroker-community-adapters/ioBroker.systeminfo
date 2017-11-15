@@ -60,7 +60,7 @@
                 "conv": "parseFloat($0)",
                 "role": "value.temperature/°C",
                 "write": "",
-                "poll": "normal"
+                "schedule": "1 * * * * *"
             },
             {
                 "name": "System.(Memory_total, Memory_used, Memory_free, Memory_available)",
@@ -70,7 +70,7 @@
                 "conv": "[parseInt($1), parseInt($2), parseInt($3), parseInt($4)]",
                 "role": "intvalue/kb",
                 "write": "",
-                "poll": "normal"
+                "schedule": "1 * * * * *"
             },
             {
                 "name": "System.(Swap.total, Swap.used, Swap.free)",
@@ -80,7 +80,7 @@
                 "conv": "[parseInt($1), parseInt($2), parseInt($3)]",
                 "role": "intvalue/kb",
                 "write": "",
-                "poll": "normal"
+                "schedule": "1 * * * * *"
             },
             {
                 "name": "GPIO.0",
@@ -90,7 +90,7 @@
                 "conv": "A.parseLogic($0)",
                 "role": "switch",
                 "write": "gpio write 0 $($0 ? 1 : 0)",
-                "poll": "fast"
+                "schedule": "1 * * * * *"
             },
             {
                 "name": "System.Led_Green",
@@ -100,7 +100,7 @@
                 "conv": "A.parseLogic($0)",
                 "role": "switch",
                 "write": "true",
-                "poll": "fast"
+                "schedule": "1 * * * * *"
             },
             {
                 "name": "System.Led_Red",
@@ -110,7 +110,7 @@
                 "conv": "A.parseLogic($0)",
                 "role": "switch",
                 "write": "true",
-                "poll": "fast"
+                "schedule": "1 * * * * *"
             }
         ]
 

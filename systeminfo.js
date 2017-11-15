@@ -13,29 +13,24 @@ const utils = require('./lib/utils'),
 	A = require('./myAdapter'),
 	si = require('systeminformation'),
 	cheerio = require('cheerio'),
+	schedule = require('node-schedule'),
 	xml2js = require('xml2js');
 
 
-const list = {
-		normal: [],
-		fast: [],
-		slow: []
-	},
+const list = {},
+	scheds = {},
 	states = {},
 	roleNames = ["number", "switch", "boolean", "value.temperature", "json", "string"],
 	roleRoles = ["value", "switch", "value", "value.temperature", "value", "value"],
 	roleTypes = ["number", "boolean", "boolean", "number", "string", "string"],
-	reIsEvalWrite = /\$\((.+)\)/,
+	reIsEvalWrite = /@\((.+)\)/,
 	reIsMultiName = /^([^\s,\[]+)\s*(\[\s*(\w+\s*\/\s*\w*|[^\s,\]]+(\s*\,\s*[^\s,\]]+)+|\*)\s*\]\s*)?(\S*)$/,
 	reIsInfoName = /^(\w*)\s*(\(\s*([^\(\),\s]+)\s*(\,\s*\S+\s*)*\))?$/,
 	reIsRegExp = /^\/(.*)\/([gimy])*$/,
 	reIsObjName = /\s*(\w+)\s*\/\s*(\w*)\s*/,
-	reStripPrefix = /(?!xmlns)^.*:/;
-
-let pollF, pollfastF, pollslowF,
-	poll = 30,
-	pollfast = 2,
-	pollslow = 60;
+	reStripPrefix = /(?!xmlns)^.*:/,
+	reIsSchedule = /^[\d\-\/\*\,]+(\s+[\d\/\-\*,]+){4,5}$/,
+	reIsTime = /^([\d\-\*\,\/]+)\s*:\s*([\d\-\*\,\/]+)\s*(?::\s*([\d\-\*\,\/]+))?$/;
 
 A.init(adapter, main); // associate adapter and main with MyAdapter
 
@@ -114,18 +109,18 @@ class JsonPath {
 		if (expr && this.$) {
 			var subx = [],
 				subs = [],
-				res = expr.replace(/([^\\]"|^"|\\\\")(\\"|[^"])+"/g, ($0) => {
+				res = expr.replace(/([^\\]"|^"|\\\\")(\\"|[^"])+?"/g, ($0) => {
 					let t = $0[1] === '"' ? $0[0] : '',
 						s = t === '' ? $0.slice(1, -1) : $0.slice(2, -1);
 					return t + "__" + (subs.push(s.replace(/\\"/g, '"')) - 1) + '__';
 				});
 			res = res.replace(/\s*([\w\$]+)\s*(\.\s*(\w|$)+\s*)*/g, (_0) => _0.split('.').map(a => a.trim()).join('\\§'));
-			res = res.replace(/\[(\??\(.+\))\]/g, ($0, $1) => "[#" + (subx.push($1.trim().replace(/,/g, '\\#').replace(/\./g, '\\§')) - 1));
-			res = res.replace(/\.|\]\s*\[|\];|\[/g, ";");
+			res = res.replace(/\[(\??\(.+?\))\]/g, ($0, $1) => "[#" + (subx.push($1.trim().replace(/,/g, '\\#').replace(/\./g, '\\§')) - 1));
+			res = res.replace(/(\.|\];?)?\s*(\[|\];|\]\s*\[)/g, ";");
 			res = res.replace(/;;;|;;/g, ";..;");
 			res = res.replace(/;$|\]$/g, "");
-			res = res.replace(/#(\d+)/g, ($0, $1) => subx[$1]);
-			res = res.replace(/__(\d+)__/g, ($0, $1) => subs[$1]);
+			res = res.replace(/#(\d+?)/g, ($0, $1) => subx[$1]);
+			res = res.replace(/__(\d+?)__/g, ($0, $1) => subs[$1]);
 			res = res.replace(/\\§/g, '.');
 			res = res.replace(/^\$;/, "");
 			A.D(`normalized= ${res}`, res);
@@ -390,7 +385,53 @@ function writeInfo(id, state) {
 		default:
 			break;
 	}
-	return obj.wfun && obj.wfun(val).then(() => A.makeState(id, state.val, true), A.D);
+	return obj.wfun && obj.wfun(val).then(() =>
+			A.makeState(id, state.val, true))
+		.catch(e => A.W(`wfun err ${e}`));
+}
+
+function setItem(item, name, value) {
+//	A.D(`setItem ${name} to ${A.O(value)} with ${item.type};${item.conv};${item.role}`);
+	if (!states[name])
+		states[name] = item;
+	if (item.conv)
+		switch (item.conv.trim().toLowerCase()) {
+			case 'number':
+				value = isNaN(value) ? NaN : A.number(value);
+				break;
+			case 'boolean':
+				value = A.parseLogic(value);
+				break;
+			case '!boolean':
+				value = !A.parseLogic(value);
+				break;
+			case 'html':
+			case 'json':
+			case 'xml':
+				break;
+			default:
+				if (item.conv.indexOf('@') >= 0)
+					try {
+						value = WebQuery.eval(item.conv, value);
+					} catch (e) {
+						A.W(`convert '${item.conv}' for item ${name} failed with: ${e}`);
+					}
+				break;
+		}
+	let o = A.clone(item.opt);
+	o.id = name;
+	switch (A.T(value)) {
+		case 'object':
+		case 'array':
+			value = JSON.stringify(value);
+			break;
+		case 'function':
+			value = `${value}`;
+			break;
+		default:
+			break;
+	}
+	return A.makeState(o, value, true);
 }
 
 function doPoll(plist) {
@@ -399,54 +440,14 @@ function doPoll(plist) {
 		return id.pre + n + id.post;
 	}
 
-	function setItem(item, name, value) {
-		A.D(`setItem ${name} to ${A.O(value)} with ${item.type};${item.conv};${item.role}`);
-		if (!states[name])
-			states[name] = item;
-		if (item.conv)
-			switch (item.conv.trim().toLowerCase()) {
-				case 'number':
-					value = isNaN(value) ? NaN : A.number(value);
-					break;
-				case 'boolean':
-					value = A.parseLogic(value);
-					break;
-				case '!boolean':
-					value = !A.parseLogic(value);
-					break;
-				case 'html':
-				case 'json':
-				case 'xml':
-					break;
-				default:
-					try {
-						value = WebQuery.eval(item.conv, value);
-					} catch (e) {
-						A.W(`convert '${item.conv}' for item ${name} failed with: ${e}`);
-					}
-					break;
-			}
-		let o = A.clone(item.opt);
-		o.id = name;
-		switch (A.T(value)) {
-			case 'object':
-			case 'array':
-				value = JSON.stringify(value);
-				break;
-			case 'function':
-				value = `${value}`;
-				break;
-			default:
-				break;
-		}
-		return A.makeState(o, value, true);
+	if (!plist) {
+		plist = [];
+		for (let k of A.ownKeys(list))
+			plist = plist.concat(list[k]);
 	}
-
-	if (!plist)
-		plist = list.fast.concat(list.normal, list.slow);
 	if (plist.length === 0)
 		return;
-	A.D(`I should poll ${plist.map(x => x.id)} now!`);
+//	A.D(`I should poll ${plist.map(x => x.id)} now!`);
 	const caches = {};
 	return A.seriesOf(plist, item => {
 		if (!item.fun) return Promise.reject(`Undefined function in ${A.O(item)}`);
@@ -478,6 +479,8 @@ function doPoll(plist) {
 									jp = new RegExp(jp[1], jp[2]);
 									jp = res.match(jp);
 									res = jp ? jp[2] : res;
+									//								} else if ((jp = item.conv.match(reIsEvalWrite))) {
+									//									res = WebQuery.eval(jp[1],res);
 								}
 								break;
 						}
@@ -530,20 +533,11 @@ function doPoll(plist) {
 }
 
 function main() {
-	function tint(str, def) {
-		if (str && !isNaN(parseInt(str)))
-			return parseInt(str);
-		return def || 0;
-	}
 
 	A.I(`Startup Systeminfo Adapter ${A.ains}: ${A.O(adapter.config)}`);
 
 	if ((A.debug = adapter.config.startup.startsWith('debug!')))
 		adapter.config.startup = adapter.config.startup.slice(A.D(`Debug mode on!`, 6));
-
-	poll = tint(adapter.config.poll, 10);
-	pollfast = tint(adapter.config.pollfast, 2);
-	pollslow = tint(adapter.config.poll, 300);
 
 	for (let item of adapter.config.items) {
 		if (item.name.startsWith('-'))
@@ -574,7 +568,7 @@ function main() {
 		ni.write = ni.write && ni.write.trim();
 		ni.source = ni.source.trim();
 		ni.conv = ni.conv && ni.conv.trim();
-		let ra = A.trim(A.T(ni.role, "") ? ni.role.split('/') : 'value'),
+		let ra = A.trim(A.T(ni.role, "") ? ni.role.split('|') : 'value'),
 			unit = ra.length > 1 ? ra[1] : undefined,
 			rr = ra[0],
 			ri = roleNames.indexOf(rr),
@@ -609,7 +603,8 @@ function main() {
 		opt.native.si = A.clone(ni);
 		switch (ni.type) {
 			case 'exec':
-				ni.fun = () => A.exec(ni.source).then(x => x.trim());
+				ni.fun = () =>
+					A.exec(ni.source).then(x => x.trim());
 				ni.wfun = (val) => {
 					let w = ni.write;
 					let e = w.match(reIsEvalWrite);
@@ -622,12 +617,15 @@ function main() {
 				};
 				break;
 			case 'file':
-				ni.fun = () => A.readFile(ni.source, 'utf8').then(x => x.trim());
-				ni.wfun = (val) => A.writeFile(ni.source, val.toString(), 'utf8');
+				ni.fun = () =>
+					A.readFile(ni.source, 'utf8').then(x => x.trim());
+				ni.wfun = (val) =>
+					A.writeFile(ni.source, val.toString(), 'utf8');
 				ni.wtext = 'eval';
 				break;
 			case 'web':
-				ni.fun = () => A.get(ni.source);
+				ni.fun = () =>
+					A.get(ni.source);
 				if (ni.conv === 'html' && /^\{.+\}$/.test(ni.regexp))
 					try {
 						let cmd = WebQuery.eval('(' + ni.regexp + ')'),
@@ -660,15 +658,26 @@ function main() {
 		}
 
 		ni.opt = opt;
-		list[ni.poll].push(ni);
+		let sch = item.sched ? item.sched.trim() : '',
+			scht = sch.match(reIsTime);
+		if (scht) {
+			if (scht[3] === undefined) 
+				scht[3] = A.obToArray(list).length % 58 + 1;
+			sch = `${scht[3]} ${scht[2]} ${scht[1]} * * *`;
+		}
+		if (sch && sch.match(reIsSchedule)) {
+			opt.native.si.sched = sch;
+			if (list[sch])
+				list[sch].push(ni);
+			else
+				list[sch] = [ni];
+			scheds[sch] = null;
+		} else A.W(`Invalid schedule in item ${item.name}`);
 
 	}
 
-	A.D(`Will poll every ${pollfast}sec: ${list.fast.map(x => x.id)}.`);
-	A.D(`Will poll every ${poll}min: ${list.normal.map(x => x.id)}.`);
-	A.D(`Will poll every ${pollslow}min: ${list.slow.map(x => x.id)}.`);
-
-	A.seriesOf(A.trim(adapter.config.startup.slice('\n')), x => A.exec(x).then(A.nop, A.D), 10)
+	A.seriesOf(A.trim(adapter.config.startup.split('\n')), x =>
+			A.exec(x).then(A.nop, A.D), 10)
 		.then(() => doPoll())
 		.then(() => A.getObjectList({
 				startkey: A.ain,
@@ -677,15 +686,12 @@ function main() {
 			.then(res => A.seriesOf(res.rows, item => A.states[item.id.slice(A.ain.length)] ? A.resolve() :
 				A.D(`Delete unneeded state ${item.id}`, A.removeState(item.id.slice(A.ain.length))), 2))
 			.then(() => {
-				if (list.normal.length > 0)
-					pollF = setInterval(doPoll, poll * 1000 * 60, list.normal);
-				if (list.fast.length > 0)
-					pollfastF = setInterval(doPoll, pollfast * 1000, list.fast);
-				if (list.slow.length > 0)
-					pollslowF = setInterval(doPoll, pollslow * 1000 * 60, list.slow);
-
+				for (let sh in list) {
+					A.D(`Will poll every '${sh}': ${list[sh].map(x => x.name)}.`);
+					scheds[sh] = schedule.scheduleJob(sh, () => doPoll(list[sh]));
+				}
 			})
-			.then(() => A.I(`Adapter ${A.ains} started and found ${list.fast.length + list.normal.length + list.slow.length}/${A.obToArray(states).length} items/states to process.`))
+			.then(() => A.I(`Adapter ${A.ains} started and found ${A.obToArray(list).reduce((acc,val) => acc + val.length,0)}/${A.obToArray(states).length} items/states to process.`))
 			.catch(e => A.W(`Unhandled error in main: ${e}`))
 		);
 }
