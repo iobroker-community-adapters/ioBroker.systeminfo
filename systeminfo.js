@@ -117,7 +117,7 @@ class JsonPath {
 				return t + "__" + (subs.push(s.replace(/\\"/g, '"')) - 1) + '__';
 			});
 		res = res.replace(/\s*([\w\$]+)\s*(\.\s*(\w|$)+\s*)*/g, (_0) => _0.split('.').map(a => a.trim()).join('\\§'));
-		res = res.replace(/\[(\??\(.+?\))\]/g, ($0, $1) => "[#" + (subx.push($1.trim().replace(/,/g, '\\#').replace(/\./g, '\\§')) - 1));
+		res = res.replace(/\[([\?\!]?\(.+?\))\]/g, ($0, $1) => "[#" + (subx.push($1.trim().replace(/,/g, '\\#').replace(/\./g, '\\§')) - 1));
 		res = res.replace(/(\.|\];?)?\s*(\[|\];|\]\s*\[)/g, ";");
 		res = res.replace(/;;;|;;/g, ";..;");
 		res = res.replace(/;$|\]$/g, "");
@@ -138,6 +138,7 @@ class JsonPath {
 		} catch (e) {
 			throw new SyntaxError("jsonPath: " + e.message + ": " + x.replace(/@/g, "_v").replace(/\^/g, "_a"));
 		}
+		return null;
 	}
 
 	trace(x, val) {
@@ -157,7 +158,10 @@ class JsonPath {
 			this.trace([that.myeval(loc, val)].concat(x), val);
 		else if (/^\?\(.*?\)$/.test(loc)) // [?(expr)]
 			walk(loc, x, val, (m, l, x, v) => that.myeval(l.slice(2, -1), v[m]) ? that.trace([m].concat(x), v) : null);
-		else if (/^(-?[0-9]*):(-?[0-9]*):?([0-9]*)$/.test(loc)) {
+		else if (/^\!\(.*?\)$/.test(loc)) { // [!(expr)]
+			let res = that.myeval(loc.slice(2, -1),val);
+			if (res) that.trace(Array.from(x), res);
+		} else if (/^(-?[0-9]*):(-?[0-9]*):?([0-9]*)$/.test(loc)) {
 			let ov = Object.keys(val).filter(k => val.hasOwnProperty(k));
 			let len = ov.length,
 				start = 0,
@@ -516,9 +520,9 @@ function doPoll(plist) {
 							if (id.name && mat === 'object') {
 								if (!id.value)
 									return A.seriesOf(ma, o => A.T(o, {}) ? A.seriesOf(Object.keys(o).filter(x => o.hasOwnProperty(x)),
-										i => i !== id.name ? setItem(item, idid(id, o[id.name] + '.' + i), o[i]) : A.resolve(), 1) : A.resolve(), 1);
+										i => i !== id.name ? setItem(item, idid(id, o[id.name].replace(/[\. ]/g, '_') + '.' + i), o[i]) : A.resolve(), 1) : A.resolve(), 1);
 								return A.seriesOf(ma, o =>
-									setItem(item, idid(id, o[id.name]), o[id.value]), 1);
+									setItem(item, idid(id, o[id.name].replace(/[\. ]/g, '_')), o[id.value]), 1);
 							}
 							//						if (io && A.T(item.id.mid, [])) {
 							if (id.mid === '*')
