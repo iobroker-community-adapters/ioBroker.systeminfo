@@ -98,34 +98,35 @@ class Cache {
 
 class JsonPath {
 	constructor(obj) {
-		this.$ = (obj && A.T(obj) === 'object') ? A.clone(obj) : {
-			empty: "Empty Object"
-		};
+		this.$ = A.T(obj, {}) || A.T(obj, []) ? A.clone(obj) : obj;
 	}
 
 	parse(expr) {
 		this.result = [];
 
-		if (expr && this.$) {
-			var subx = [],
-				subs = [],
-				res = expr.replace(/([^\\]"|^"|\\\\")(\\"|[^"])+?"/g, ($0) => {
-					let t = $0[1] === '"' ? $0[0] : '',
-						s = t === '' ? $0.slice(1, -1) : $0.slice(2, -1);
-					return t + "__" + (subs.push(s.replace(/\\"/g, '"')) - 1) + '__';
-				});
-			res = res.replace(/\s*([\w\$]+)\s*(\.\s*(\w|$)+\s*)*/g, (_0) => _0.split('.').map(a => a.trim()).join('\\§'));
-			res = res.replace(/\[(\??\(.+?\))\]/g, ($0, $1) => "[#" + (subx.push($1.trim().replace(/,/g, '\\#').replace(/\./g, '\\§')) - 1));
-			res = res.replace(/(\.|\];?)?\s*(\[|\];|\]\s*\[)/g, ";");
-			res = res.replace(/;;;|;;/g, ";..;");
-			res = res.replace(/;$|\]$/g, "");
-			res = res.replace(/#(\d+?)/g, ($0, $1) => subx[$1]);
-			res = res.replace(/__(\d+?)__/g, ($0, $1) => subs[$1]);
-			res = res.replace(/\\§/g, '.');
-			res = res.replace(/^\$;/, "");
-			A.D(`normalized= ${res}`, res);
-			this.trace(res.split(';').map(s => s.trim()).filter(s => s.length), this.$, "$");
-		}
+		if (this.$ && !expr)
+			return [this.$];
+		else if (!this.$)
+			return false;
+
+		var subx = [],
+			subs = [],
+			res = expr.replace(/([^\\]"|^"|\\\\")(\\"|[^"])+?"/g, ($0) => {
+				let t = $0[1] === '"' ? $0[0] : '',
+					s = t === '' ? $0.slice(1, -1) : $0.slice(2, -1);
+				return t + "__" + (subs.push(s.replace(/\\"/g, '"')) - 1) + '__';
+			});
+		res = res.replace(/\s*([\w\$]+)\s*(\.\s*(\w|$)+\s*)*/g, (_0) => _0.split('.').map(a => a.trim()).join('\\§'));
+		res = res.replace(/\[(\??\(.+?\))\]/g, ($0, $1) => "[#" + (subx.push($1.trim().replace(/,/g, '\\#').replace(/\./g, '\\§')) - 1));
+		res = res.replace(/(\.|\];?)?\s*(\[|\];|\]\s*\[)/g, ";");
+		res = res.replace(/;;;|;;/g, ";..;");
+		res = res.replace(/;$|\]$/g, "");
+		res = res.replace(/#(\d+?)/g, ($0, $1) => subx[$1]);
+		res = res.replace(/__(\d+?)__/g, ($0, $1) => subs[$1]);
+		res = res.replace(/\\§/g, '.');
+		res = res.replace(/^\$;/, "");
+		//			A.D(`normalized= ${res}`, res);
+		this.trace(res.split(';').map(s => s.trim()).filter(s => s.length), this.$, "$");
 		return this.result.length ? this.result : false;
 	}
 
@@ -157,7 +158,8 @@ class JsonPath {
 		else if (/^\?\(.*?\)$/.test(loc)) // [?(expr)]
 			walk(loc, x, val, (m, l, x, v) => that.myeval(l.slice(2, -1), v[m]) ? that.trace([m].concat(x), v) : null);
 		else if (/^(-?[0-9]*):(-?[0-9]*):?([0-9]*)$/.test(loc)) {
-			let len = val.length,
+			let ov = Object.keys(val).filter(k => val.hasOwnProperty(k));
+			let len = ov.length,
 				start = 0,
 				end = len,
 				step = 1;
@@ -169,10 +171,13 @@ class JsonPath {
 			start = (start < 0) ? Math.max(0, start + len) : Math.min(len, start);
 			end = (end < 0) ? Math.max(0, end + len) : Math.min(len, end);
 			for (var j = start; j < end; j += step)
-				this.trace([j].concat(x), val);
+				this.trace([ov[j]].concat(x), val);
 		} else if (val && val.hasOwnProperty(loc))
 			this.trace(Array.from(x), val[loc]);
-		else if (/,/.test(loc)) { // [name1,name2,...]
+		else if (/^\d+$/.test(loc)) {
+			let ov = Object.keys(val).filter(k => val.hasOwnProperty(k));
+			this.trace([ov[parseInt(loc)]].concat(x),val);
+		} else if (/,/.test(loc)) { // [name1,name2,...]
 			loc.split(',').map(s => that.trace([s.trim()].concat(x), val));
 		} else if (/[\w\$]+\s*\.\s*[\w\$]+/.test(loc)) {
 			let o = loc.split('.').map(s => s.trim());
@@ -503,18 +508,22 @@ function doPoll(plist) {
 						}
 						if (ma && A.T(item.id, {})) {
 							let mat = A.T(ma[0]);
-							if (mat === 'object' && id.mid === '*')
-								return A.seriesOf(Object.keys(ma).filter(x => ma.hasOwnProperty(x)), i => setItem(item, idid(id, i), ma[i]), 1);
-
+							if (mat === 'object' && ma.length === 1 && id.mid === '*') {
+								ma = ma[0];
+								return A.seriesOf(Object.keys(ma).filter(x => ma.hasOwnProperty(x)), i =>
+									setItem(item, idid(id, i.replace(/[\. ]/g, '_')), ma[i]), 1);
+							}
 							if (id.name && mat === 'object') {
 								if (!id.value)
 									return A.seriesOf(ma, o => A.T(o, {}) ? A.seriesOf(Object.keys(o).filter(x => o.hasOwnProperty(x)),
 										i => i !== id.name ? setItem(item, idid(id, o[id.name] + '.' + i), o[i]) : A.resolve(), 1) : A.resolve(), 1);
-								return A.seriesOf(ma, o => setItem(item, idid(id, o[id.name]), o[id.value]), 1);
+								return A.seriesOf(ma, o =>
+									setItem(item, idid(id, o[id.name]), o[id.value]), 1);
 							}
 							//						if (io && A.T(item.id.mid, [])) {
 							if (id.mid === '*')
-								return A.seriesIn(ma, i => setItem(item, idid(id, i), ma[parseInt(i)]), 1);
+								return A.seriesIn(ma, i =>
+									setItem(item, idid(id, i), ma[parseInt(i)]), 1);
 
 							if (A.T(item.id.mid, []))
 								return A.seriesIn(item.id.mid, i => {
