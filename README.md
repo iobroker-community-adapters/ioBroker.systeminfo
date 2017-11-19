@@ -76,8 +76,7 @@ It handles text, HTML, json and XML data types wizh special query mechanisms.
         *  For `exec` it is an command line which can include `@(...)` statements which would be evaluated. Example: `gpio write 1 @(@ ?  '0' : '1')` would translate to `gpio write 1 0` if the state is true and to `gpio write 1 1` if it is false. THis controls my IR led's which light up if the GPIO pin is 'low' (0).
         *  For `file` it is a simple eval expression which is executed and written to the file. Example: `@ ? '1' : '0' ` would write '1' if value is true and '0' if it is false.
     *  The last is the `schedule`. If it is empty the ite is not executed at all! All schedules which share the exact same value will be executed together with the same cache.
-        *  `cron-syntax` you can use the same 'cron'-syntax like oBroker is using inJavascript schedules which is described in [node-schedule]
-        (https://github.com/node-schedule/node-schedule)
+        *  `cron-syntax` you can use the same 'cron'-syntax like oBroker is using inJavascript schedules which is described in [node-schedule](https://github.com/node-schedule/node-schedule)
         * `time-syntax` I created a special time syntax `?:?(:?)` which makes it easier
             * `*:16` would request this data on minute 15 of every hour
             * `*/2:1:1` would request every second hour on 1st minute and 1 second.
