@@ -288,8 +288,8 @@
     "objects": [],
     "config": {
         "minWidth": 800,
-        "width ": 1024,
+        "width ": 1280,
         "minHeight": 800,
-        "height": 900
+        "height": 1024
     }
 }
