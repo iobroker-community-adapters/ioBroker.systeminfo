@@ -1,11 +1,11 @@
 ![Logo](./admin/systeminfo.png) 
 # Liest (und schreibt) Informationen von Systemen
-
+---
 [![NPM version](http://img.shields.io/npm/v/iobroker.systeminfo.svg)](https://www.npmjs.com/package/iobroker.systeminfo)
-[![Downloads](https://img.shields.io/npm/dm/iobroker.systeminfo.svg)](https://www.npmjs.com/package/iobroker.systeminfo) 
+[![Downloads](https://img.shields.io/npm/dm/iobroker.systeminfo.svg)](https://www.npmjs.com/package/iobroker.systeminfo)
+
 **Tests:** Linux/Mac: [![Travis-CI Build Status](https://travis-ci.org/frankjoke/ioBroker.systeminfo.svg?branch=master)](https://travis-ci.org/frankjoke/ioBroker.systeminfo)
 Windows: [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/pil6266rrtw6l5c0?svg=true)](https://ci.appveyor.com/project/frankjoke/iobroker-systeminfo)
-
 [![NPM](https://nodei.co/npm/iobroker.systeminfo.png?downloads=true)](https://nodei.co/npm/iobroker.systeminfo/)
 
 ## Adapter handles (system) information from own or other systems and web sources
