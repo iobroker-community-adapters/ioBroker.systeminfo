@@ -443,10 +443,11 @@ class MyAdapter {
     static request(opt, value, transform) {
         if (this.T(opt) === 'string')
             opt = this.url(opt.trim());
-        if (this.T(opt) !== 'object' && !(opt instanceof url.Url))
-            return Promise.reject(this.W(`Invalid opt or Url for request: ${this.O(opt)}`));
-        if (opt.url > '')
-            opt = this.url(opt.url, opt);
+        if (!(opt instanceof url.Url)) { 
+            if (this.T(opt) !== 'object' || !opt.hasOwnProperty('url')) 
+                return Promise.reject(this.W(`Invalid opt or Url for request: ${this.O(opt)}`));
+            opt = this.url(opt.url,opt);
+        }            
         if (opt.json)
             if (opt.headers) opt.headers.Accept = 'application/json';
             else opt.headers = {

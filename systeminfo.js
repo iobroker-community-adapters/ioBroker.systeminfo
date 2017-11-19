@@ -30,7 +30,8 @@ const list = {},
 	reIsObjName = /\s*(\w+)\s*\/\s*(\w*)\s*/,
 	reStripPrefix = /(?!xmlns)^.*:/,
 	reIsSchedule = /^[\d\-\/\*\,]+(\s+[\d\/\-\*,]+){4,5}$/,
-	reIsTime = /^([\d\-\*\,\/]+)\s*:\s*([\d\-\*\,\/]+)\s*(?::\s*([\d\-\*\,\/]+))?$/;
+	reIsTime = /^([\d\-\*\,\/]+)\s*:\s*([\d\-\*\,\/]+)\s*(?::\s*([\d\-\*\,\/]+))?$/,
+	reIsObject = /^\s*?\}.+\}$/;
 
 A.init(adapter, main); // associate adapter and main with MyAdapter
 
@@ -124,6 +125,7 @@ class JsonPath {
 		res = res.replace(/#(\d+?)/g, ($0, $1) => subx[$1]);
 		res = res.replace(/__(\d+?)__/g, ($0, $1) => subs[$1]);
 		res = res.replace(/\\§/g, '.');
+		res = res.replace(/\\#/g,',');
 		res = res.replace(/^\$;/, "");
 		//			A.D(`normalized= ${res}`, res);
 		this.trace(res.split(';').map(s => s.trim()).filter(s => s.length), this.$, "$");
@@ -159,7 +161,7 @@ class JsonPath {
 		else if (/^\?\(.*?\)$/.test(loc)) // [?(expr)]
 			walk(loc, x, val, (m, l, x, v) => that.myeval(l.slice(2, -1), v[m]) ? that.trace([m].concat(x), v) : null);
 		else if (/^\!\(.*?\)$/.test(loc)) { // [!(expr)]
-			let res = that.myeval(loc.slice(2, -1),val);
+			let res = that.myeval(loc.slice(2, -1), val);
 			if (res) that.trace(Array.from(x), res);
 		} else if (/^(-?[0-9]*):(-?[0-9]*):?([0-9]*)$/.test(loc)) {
 			let ov = Object.keys(val).filter(k => val.hasOwnProperty(k));
@@ -180,7 +182,7 @@ class JsonPath {
 			this.trace(Array.from(x), val[loc]);
 		else if (/^\d+$/.test(loc)) {
 			let ov = Object.keys(val).filter(k => val.hasOwnProperty(k));
-			this.trace([ov[parseInt(loc)]].concat(x),val);
+			this.trace([ov[parseInt(loc)]].concat(x), val);
 		} else if (/,/.test(loc)) { // [name1,name2,...]
 			loc.split(',').map(s => that.trace([s.trim()].concat(x), val));
 		} else if (/[\w\$]+\s*\.\s*[\w\$]+/.test(loc)) {
@@ -304,7 +306,7 @@ class WebQuery {
 		opt = norm(opt);
 		let data = {},
 			name,
-			res = opt._sel ? this._$(opt._sel, con) : con;
+			res = opt._sel ? this._$(opt._sel, con) : con ? con : this._$('body', con);
 
 		if (A.T(opt._eq, 0))
 			res = res.eq(opt._eq);
@@ -348,15 +350,24 @@ class WebQuery {
 					docs = data[name] = [];
 					items = this._$(sel, res);
 
-					for (let i = 0; i < items.length; ++i) {
-						item = items.eq(i);
-						if ((A.T(opt._filter) === 'function' && opt._filter(item, this._$)) ||
-							(A.T(opt._filter, '') && WebQuery.eval(opt._filter, item, con))) {
-							let cdoc = this.handle(nopt, item);
-							docs.push(cdoc);
-						}
+					if (items.length === 1) {
+						let r = res.eq(0);
+						if (nam) {
+							data[nam] = this.handle(nopt, r);
+							continue;
+						} else
+							res = r;	
+					} else
+						for (let i = 0; i < items.length; ++i) {
+							item = items.eq(i);
+							if (opt._filter === undefined ||
+								(A.T(opt._filter) === 'function' && opt._filter(item, this._$)) ||
+								(A.T(opt._filter, '') && WebQuery.eval(opt._filter, item, con))) {
+								let cdoc = this.handle(nopt, item);
+								docs.push(cdoc);
+							}
 
-					}
+						}
 					continue;
 				}
 
@@ -369,7 +380,7 @@ class WebQuery {
 		let value = typeof opt._fun === 'function' ? opt._fun(res) : A.T(opt._fun, '') ? WebQuery.eval(opt._fun, res) : res && res.text ? res.text() : res;
 
 		if (!opt._notrim && A.T(value, ''))
-			value = value.trim();
+			value = value.trim().replace(/[\s\n]+/g,' ');
 
 		if (opt._conv) {
 			if (typeof opt._conv === 'function')
@@ -637,8 +648,14 @@ function main() {
 				ni.wtext = 'eval';
 				break;
 			case 'web':
-				ni.fun = () =>
-					A.get(ni.source);
+				ni.fun = () => {
+					let m = ni.source.match(reIsObject);
+					if (m) {
+						m = WebQuery.eval(ni.source);
+						return A.request(m,m.data);
+					} 
+					return A.request( ni.source);
+				};
 				if (ni.conv === 'html' && /^\{.+\}$/.test(ni.regexp))
 					try {
 						let cmd = WebQuery.eval('(' + ni.regexp + ')'),
