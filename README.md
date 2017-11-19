@@ -60,7 +60,7 @@ It handles text, HTML, json and XML data types wizh special query mechanisms.
             * `[!(...)]` Returns the evaluated value as new item. In this way you can calculate your own data out of the objects found.
             * `[name1,name2,name3]` would select only those property names
             * `[0]` would select only select the 'first' (or n'th) element or property
-            * `[start:end:step]` would take the elements startiing from `start` and `<end` using `step`. All need to be numbers, or left empty. `start` and `end` can be negative which would mean they cound from end. Example: `[1:-1:2] would take every second element from the second one until but not including the last one. The last one would be [-1::], the first 3 would be [:3:] and the last 3 would be -[-3::]
+            * `[start:end:step]` would take the elements startiing from `start` and `<end` using `step`. All need to be numbers, or left empty. `start` and `end` can be negative which would mean they cound from end. Example: `[1:-1:2]` would take every second element from the second one until but not including the last one. The last one would be `[-1::]`, the first 3 would be `[:3:]` and the last 3 would be `[-3::]`
             * `..` is a recurseive descent selector which means that `..name` would select the property name in 'any dept' of the object!  
         * `html WebObject query` In case html is parsed I created a special query tool to select items from web paqges similar to jQuery. This tool creates an object which is the finally parsed with `JsonPath`. **Documentaion to follow**
     * The `convert` entry either can be
