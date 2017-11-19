@@ -1,7 +1,9 @@
-# ![Logo](./admin/systeminfo.png) Liest (und schreibt) Informationen von Systemen
-
+![Logo](./admin/systeminfo.png) 
+# Liest (und schreibt) Informationen von Systemen
+================================
 [![NPM version](http://img.shields.io/npm/v/iobroker.systeminfo.svg)](https://www.npmjs.com/package/iobroker.systeminfo)
 [![Downloads](https://img.shields.io/npm/dm/iobroker.systeminfo.svg)](https://www.npmjs.com/package/iobroker.systeminfo)
+
 **Tests:** Linux/Mac: [![Travis-CI Build Status](https://travis-ci.org/frankjoke/ioBroker.systeminfo.svg?branch=master)](https://travis-ci.org/frankjoke/ioBroker.systeminfo)
 Windows: [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/pil6266rrtw6l5c0?svg=true)](https://ci.appveyor.com/project/frankjoke/iobroker-systeminfo)
 
@@ -56,7 +58,8 @@ It handles text, HTML, json and XML data types wizh special query mechanisms.
             * `name` an property name
             * `*` any item in this object, this can be all properties or if the object is an array it is all array items
             * `[(...)]` evaluate `...` to get the property name which will be selected. `@` will be used as placeholder for the current object and can be used in the eval statement.
-            * `[?(...)]` Filter the elements of this item by ..., example: `list[?(@.user == 'pi')]` would first select the property `list` (which is an array) and fileter then the list by selecting only these list items what have `.user`set to `pi`. 
+            * `[?(...)]` Filter the elements of this item by ..., 
+            Example: `list[?(@.user == 'pi')]` would first select the property `list` (which is an array) and fileter then the list by selecting only these list items what have `.user`set to `pi`. 
             * `[!(...)]` Returns the evaluated value as new item. In this way you can calculate your own data out of the objects found.
             * `[name1,name2,name3]` would select only those property names
             * `[0]` would select only select the 'first' (or n'th) element or property
@@ -107,7 +110,7 @@ Mit ioBroker admin, npm install iobroker.systeminfo oder von <https://github.com
 
 The MIT License (MIT)
 
-Copyright (c) 2014-2016, frankjoke <frankjoke@hotmail.com>
+Copyright (c) 2017, frankjoke <frankjoke@hotmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
