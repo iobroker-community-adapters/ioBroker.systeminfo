@@ -1,7 +1,7 @@
 {
   "name": "iobroker.systeminfo",
   "version": "0.2.0",
-  "description": "ioBroker systeminfo Adapter",
+  "description": "ioBroker (system)info Adapter",
   "author": "Frank Joke <frankjoke@hotmail.com>",
   "contributors": [],
   "homepage": "https://github.com/frankjoke/ioBroker.systeminfo",
