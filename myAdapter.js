@@ -433,9 +433,13 @@ class MyAdapter {
         //        this.D(`mup start: ${this.O(turl)}: ${this.O(opt)}`);
         if (this.T(turl) === 'string')
             turl = url.parse(turl.trim(), true);
-        if (this.T(opt) === 'object')
+        if (this.T(opt) === 'object') {
+            opt = this.clone(opt);
+            if (!turl || !(turl instanceof url.Url) )
+                turl = new url.Url(opt.url);
             for (var i of Object.keys(opt))
-                if (i !== 'url') turl[i] = opt[i];
+                if (opt.hasOwnProperty(i) && i !== 'url') turl[i] = opt[i];
+        }
         //        this.D(`mup ret: ${this.O(turl)}`);
         return turl;
     }

@@ -40,6 +40,7 @@ It handles text, HTML, json and XML data types wizh special query mechanisms.
             * `[name1,name2, ...]`creates exactly these names (example `System.Memory_[used, free, available]` would create three states named `System.Memory_used, System.Memory_free, System.Memory_available`)
             * `[name/value]` takes the name from the object property `name`  (could be  different) and the value from the property `value`. Any property or value name can be used.
             * `[name/]` without a value would take the name from `name` and create sub-states for all other properties found in this object (example `System.Network.[iface/]`)
+
     * The `type` and `source` of the information source which can be
         * `file`: The `source` field describes a filename which is read
         * `exec`: The `source` field describes a single line command which is executed
@@ -47,6 +48,7 @@ It handles text, HTML, json and XML data types wizh special query mechanisms.
         * `web`: The `source` field describes a web URL which is read (or object describing the access, this will need to be documented later!). 
         * The requests are cached if at the same time multiple entries with the same type/source content are requested! This mean if you schedule every minute to execue a command and take two different data items out of the same command it is run only once and only the data filter are applied multiple times.
         * This helps not to download multiple times the same page if you want to retreive more items.
+
     * The `regexp/filter``is used to describe how to filter the received text either with
         * `Regexp`  statement where the indovidual items need to be sorrounded with `()`. 
         Example: `/lic\s+(\d+)K\s+(\d+)K\s+(\d+)/m` would look for the text `lic` followed by spaces and then numbers ending with `K` in all lines, it would return the 3 numbers. THis is used in the `df -BK` command of Linux to show me the size of a mounted NFS share ending with 'lic' in the name.
@@ -63,23 +65,28 @@ It handles text, HTML, json and XML data types wizh special query mechanisms.
             * `[start:end:step]` would take the elements startiing from `start` and `<end` using `step`. All need to be numbers, or left empty. `start` and `end` can be negative which would mean they cound from end. Example: `[1:-1:2]` would take every second element from the second one until but not including the last one. The last one would be `[-1::]`, the first 3 would be `[:3:]` and the last 3 would be `[-3::]`
             * `..` is a recurseive descent selector which means that `..name` would select the property name in 'any dept' of the object!  
         * `html WebObject query` In case html is parsed I created a special query tool to select items from web paqges similar to jQuery. This tool creates an object which is the finally parsed with `JsonPath`. **Documentaion to follow**
+         
     * The `convert` entry either can be
         * `json` for json data to be parsed, on Web entries this means that the received text will be handled as json directly and the regexp/filter will be a `JsonParse` statement/filter.
         * `xml` for XML-data, this means that the received data will be converted from XML to json and handled as above
         * `html` Would generate a `cheerio` object which is then searched with the special WebObject query
         * `number` or `boolean`  would try to convert the value to numbers or booleans wheras on booleans numbers>0 are true, but also strings like **on** or **ein** and **true** evaluate to true.
         *  `...` anything else like `!parseInt(@)` would be evaluated and in this case return **true** if the value is `0` or **false** if the value is a bigger integer.
+
     *  `role/type` field describes the ioBroker field ty and can name olso a unit. The normal field type is text or the value seen in convert. 
         *  `json` means that the field property is taken from the obnject
         *  `number|MB` would define a number field with unit MB (Megabytes) 
+
     *  `Write Command` fiel describes statements or evals which will be used to write back to the item. It works at the moment only for '`exec`' or '`file`' types. 
         *  For `exec` it is an command line which can include `@(...)` statements which would be evaluated. Example: `gpio write 1 @(@ ?  '0' : '1')` would translate to `gpio write 1 0` if the state is true and to `gpio write 1 1` if it is false. THis controls my IR led's which light up if the GPIO pin is 'low' (0).
         *  For `file` it is a simple eval expression which is executed and written to the file. Example: `@ ? '1' : '0' ` would write '1' if value is true and '0' if it is false.
+
     *  The last is the `schedule`. If it is empty the ite is not executed at all! All schedules which share the exact same value will be executed together with the same cache.
         *  `cron-syntax` you can use the same 'cron'-syntax like oBroker is using inJavascript schedules which is described in [node-schedule](https://github.com/node-schedule/node-schedule)
         * `time-syntax` I created a special time syntax `?:?(:?)` which makes it easier
             * `*:16` would request this data on minute 15 of every hour
             * `*/2:1:1` would request every second hour on 1st minute and 1 second.
+            * `?s`, `?m`, `?h ` with ? being digits >0 would run the request every ?seconds, monites or hours, you cannot specify multiple items at once!
         * Schedules are grouped to the same time, if you omit the seconds like in the first example above it will be assigned to some number trying to avoid same second for all items. This is done not to run too many commands at the same time.
 
 ## Known-Issues

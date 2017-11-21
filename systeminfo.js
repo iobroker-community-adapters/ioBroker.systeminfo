@@ -125,7 +125,7 @@ class JsonPath {
 		res = res.replace(/#(\d+?)/g, ($0, $1) => subx[$1]);
 		res = res.replace(/__(\d+?)__/g, ($0, $1) => subs[$1]);
 		res = res.replace(/\\§/g, '.');
-		res = res.replace(/\\#/g,',');
+		res = res.replace(/\\#/g, ',');
 		res = res.replace(/^\$;/, "");
 		//			A.D(`normalized= ${res}`, res);
 		this.trace(res.split(';').map(s => s.trim()).filter(s => s.length), this.$, "$");
@@ -356,7 +356,7 @@ class WebQuery {
 							data[nam] = this.handle(nopt, r);
 							continue;
 						} else
-							res = r;	
+							res = r;
 					} else
 						for (let i = 0; i < items.length; ++i) {
 							item = items.eq(i);
@@ -380,7 +380,7 @@ class WebQuery {
 		let value = typeof opt._fun === 'function' ? opt._fun(res) : A.T(opt._fun, '') ? WebQuery.eval(opt._fun, res) : res && res.text ? res.text() : res;
 
 		if (!opt._notrim && A.T(value, ''))
-			value = value.trim().replace(/[\s\n]+/g,' ');
+			value = value.trim().replace(/[\s\n]+/g, ' ');
 
 		if (opt._conv) {
 			if (typeof opt._conv === 'function')
@@ -652,9 +652,9 @@ function main() {
 					let m = ni.source.match(reIsObject);
 					if (m) {
 						m = WebQuery.eval(ni.source);
-						return A.request(m,m.data);
-					} 
-					return A.request( ni.source);
+						return A.request(m, m.data);
+					}
+					return A.request(ni.source);
 				};
 				if (ni.conv === 'html' && /^\{.+\}$/.test(ni.regexp))
 					try {
@@ -694,7 +694,18 @@ function main() {
 			if (scht[3] === undefined)
 				scht[3] = A.obToArray(list).length % 58 + 1;
 			sch = `${scht[3]} ${scht[2]} ${scht[1]} * * *`;
-		}
+		} else if (sch.match(/^\d+[smh]$/))
+			switch (sch.slice(-1)) {
+				case 's':
+					sch = `*/${sch.slice(0,-1)} * * * * *`;
+					break;
+				case 'm':
+					sch = `*/${sch.slice(0,-1)} * * * *`;
+					break;
+				case 'h':
+					sch = `0 */${sch.slice(0,-1)} * * *`;
+					break;
+			}
 		if (sch && sch.match(reIsSchedule)) {
 			opt.native.si.sched = sch;
 			if (list[sch])
