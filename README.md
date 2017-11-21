@@ -32,7 +32,7 @@ It handles text, HTML, json and XML data types wizh special query mechanisms.
     * If the first text is '`debug!`' it sets the adapter to debug-mode which displays a lot more information what he tries to pull and receives.
 * After the startup confirguration comes the configuration list for each data source consisting of
     * Name field which can include also 
-        * Beginnt ein Name mit '`-`' wird diese Zeile nicht bearbeitet (ist ausgeschaltet)
+        * If a name starts with '`-`' the line will be ignored (switched off), the same like if there is no schedule
         * `[*]`, `[name, ...]`, `[name/(value)]` syntax
         * without any of the above the name is used to create a state as it is.
         * If `[]` is used somewhere names are inserted here with different methods
