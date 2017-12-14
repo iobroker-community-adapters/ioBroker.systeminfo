@@ -96,11 +96,11 @@ It handles text, HTML, json and XML data types wizh special query mechanisms.
 * Requires node >=v4.5
 
 ## Changelog
+### 0.2.1
+* First public beta includes jsonParse and WebQuery parse, jsonParse syntax mistake corrected for selectors
+
 ### 0.2.0
 * First public beta includes jsonParse and WebQuery parse
-
-### 0.1.0
-* First working instance for files, exe and systeminfo
 
 ### Todo for later revisions
 * Allow import/export of configs to easily add new functions
