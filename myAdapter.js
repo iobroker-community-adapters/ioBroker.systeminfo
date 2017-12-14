@@ -289,7 +289,7 @@ class MyAdapter {
     }
 
     static O(obj, level) {
-        return util.inspect(obj, { depth: level || 2}).replace(/\n/g, ' ');
+        return util.inspect(obj, { depth: level || 2, colors: false}).replace(/\n/g, '');
     }
     static S(obj, level) {
         return typeof obj === 'string' ? obj : this.O(obj, level);

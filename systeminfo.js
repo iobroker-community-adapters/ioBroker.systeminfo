@@ -119,7 +119,7 @@ class JsonPath {
 			});
 		res = res.replace(/\s*([\w\$]+)\s*(\.\s*(\w|$)+\s*)*/g, (_0) => _0.split('.').map(a => a.trim()).join('\\§'));
 		res = res.replace(/\[([\?\!]?\(.+?\))\]/g, ($0, $1) => "[#" + (subx.push($1.trim().replace(/,/g, '\\#').replace(/\./g, '\\§')) - 1));
-		res = res.replace(/(\.|\];?)?\s*(\[|\];|\]\s*\[)/g, ";");
+		res = res.replace(/(\.|\];?)?\s*(\[|\];?|\]\s*\[)/g, ";");
 		res = res.replace(/\.\.\.|\.\./g, ";;");
 		res = res.replace(/;;;|;;/g, ";..;");
 		res = res.replace(/;$|\]$/g, "");

@@ -1,7 +1,7 @@
 {
     "common": {
         "name": "systeminfo",
-        "version": "0.2.0",
+        "version": "0.2.1",
         "title": "Systeminfo Adapter to get data from systems",
         "news": {
             "1.8.0": {
@@ -134,7 +134,7 @@
             "name": "UWZ",
             "type": "web",
             "source": "http://feed.alertspro.meteogroup.com/AlertsPro/AlertsProPollService.php?method=getWarning&language=de&areaID=UWZAT02402",
-            "regexp": "results",
+            "regexp": "..translationsShortText.DE",
             "conv": "json",
             "role": "json",
             "write": "",
