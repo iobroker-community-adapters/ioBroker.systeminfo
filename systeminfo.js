@@ -82,7 +82,7 @@ class Cache {
 		let that = this;
 		assert(!fun || A.T(fun) === 'function', 'Cache arg need to be a function returning a promise!');
 		//        A.D(`looking for ${item} in ${A.O(this._cache)}`);
-		if (this._cache[item])
+		if (this._cache[item] !== undefined)
 			return A.resolve(this._cache[item]);
 		if (!fun)
 			fun = this._fun;
