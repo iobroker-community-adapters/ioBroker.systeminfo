@@ -506,21 +506,18 @@ function doPoll(plist) {
 								break;
 						}
 						return res;
-					}).catch(e => A.W(`Error ${e} in doPoll for ${item.name}`))
+					}, e => A.W(`Error ${e} in doPoll for ${item.name}`))
 					.then(res => {
 						A.D(`${item.name}  received ${A.O(res,1)}`);
-						switch (typ) {
-							case 'info':
+						if (typ === 'info') {
 								jp = new JsonPath(res);
 								ma = jp.parse(item.conv === 'html' ? item.regexp.selection : item.regexp);
 								if (ma && ma.length > 0)
 									res = ma;
-								break;
-							default:
+						} else {
 								ma = item.regexp && res.match(item.regexp);
 								ma = ma && ma.length > 1 ? ma.slice(1) : null;
 								res = ma ? ma : res;
-								break;
 						}
 						if (ma && A.T(item.id, {})) {
 							let mat = A.T(ma[0]);
