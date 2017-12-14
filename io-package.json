@@ -38,11 +38,12 @@
             "Web",
             "Files",
             "JSON",
+            "HTTP",
             "XML"
         ],
         "readme": "https://github.com/frankjoke/ioBroker.systeminfo/blob/master/README.md",
         "loglevel": "info",
-        "type": "hardware",
+        "type": "misc-data",
         "authors": [
             "Frank Joke <frankjoke@hotmail.com>"
         ]
