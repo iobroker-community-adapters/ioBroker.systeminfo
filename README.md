@@ -96,6 +96,9 @@ It handles text, HTML, json and XML data types wizh special query mechanisms.
 * Requires node >=v4.5
 
 ## Changelog
+### 0.3.0
+* Added save and load config in admin screen
+
 ### 0.2.2
 * First public beta includes jsonParse and WebQuery parse, jsonParse syntax mistake corrected for selectors
 * New icon to separate it from info-Adapter

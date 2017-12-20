@@ -19,6 +19,9 @@
 		font-weight: bold;
 	}
 
+	#jsonstrta {
+    	font-family: monospace;
+	}
 	.table-values tr:nth-child(even) {
 		background: #d0d0d0;
 	}
@@ -77,6 +80,7 @@
 	// the function loadSettings has to exist ...
 	function load(settings, onChange) {
 		if (!settings) return;
+		document.getElementById('fileJsonInput').addEventListener('change', handleFileRead, false);
 
 		$('.value').each(function () {
 			var key = $(this).attr('id');
@@ -273,15 +277,16 @@
 					if (names[i]) {
 						var val = values[v],
 							nam = names[i];
-							valnam = val[nam.name];
+						valnam = val[nam.name];
 						if (valnam)
-							valnam = valnam.replace(/\"/g,'&quot;');
+							valnam = valnam.replace(/\"/g, '&quot;');
 						else valnam = '';
 						if (nam.type === 'checkbox') {
 							text += '<input class="values-input" type="checkbox" data-index="' + v + '" data-name="' +
 								nam.name + '" ' + (valnam ? 'checked' : '') + '" data-old-value="' + valnam + '"/>';
 						} else if (nam.type === 'select') {
-							text += '<select class="values-input" data-index="' + v + '" data-name="' + nam.name + '" data-old-value="' + valnam + '">';
+							text += '<select class="values-input" data-index="' + v + '" data-name="' + nam.name + '" data-old-value="' +
+								valnam + '">';
 							var options;
 							if (nam.name === 'room') {
 								options = $table.data('rooms');
@@ -293,9 +298,9 @@
 							}
 							text += '</select>';
 						} else {
-							text += '<input class="values-input" style="width: 100%" type="' + nam.type + 
-								'" data-index="' + v + '" data-name="' + nam.name + '" value="' + 
-									valnam + '"  data-old-value="' + valnam + '"/>';
+							text += '<input class="values-input" style="width: 100%" type="' + nam.type +
+								'" data-index="' + v + '" data-name="' + nam.name + '" value="' +
+								valnam + '"  data-old-value="' + valnam + '"/>';
 						}
 					}
 
@@ -405,40 +410,124 @@
 	}
 
 
-	function save(callback) {
-		// example: select elements with class=value and build settings object
+	function makeobj() {
 		var obj = {};
 		$('.value').each(function () {
 			var $this = $(this);
 			if ($this.attr('type') === 'checkbox') {
 				obj[$this.attr('id')] = $this.prop('checked');
-			} else {
+			} else if ($this.attr('id') != "jsonstrta") {
 				obj[$this.attr('id')] = $this.val();
 			}
 		});
-		obj.items = /* (typeof table2values === 'function') ? table2values('scenes') : */ _table2values('items');
+		obj.items = _table2values('items');
+		return obj;
+	}
+
+	function save(callback) {
+		// example: select elements with class=value and build settings object
+		//		var obj = makeobj();
+		//		obj.items = /* (typeof table2values === 'function') ? table2values('scenes') : */ 
 		//		obj.switches = /* (typeof table2values === 'function') ? table2values('switches') : */ _table2values('switches');
-		callback(obj);
+		callback(makeobj());
+	}
+
+	function configtojson() {
+		var obj = makeobj();
+		obj.converted = (new Date()).toString();
+		var str = JSON.stringify(obj, null, '  ');
+		document.getElementById('jsonstrta').value = str;
+		createDownloadLink("#exportFile", str, 'systeminfo.json');
+		return str;
+	}
+
+	function createDownloadLink(anchorSelector, str, fileName) {
+		if (window.navigator.msSaveOrOpenBlob) {
+			var fileData = [str];
+			blobObject = new Blob(fileData);
+			$(anchorSelector).click(function () {
+				window.navigator.msSaveOrOpenBlob(blobObject, fileName);
+			});
+		} else {
+			var url = "data:text/javascript;charset=utf-8," + encodeURIComponent(str);
+			$(anchorSelector).attr("download", fileName);
+			$(anchorSelector).attr("href", url);
+		}
+	}
+
+	function handleFileRead(evt) {
+		var reader = new FileReader();
+		reader.onerror = function (evt) {
+			switch (evt.target.error.code) {
+				case evt.target.error.NOT_FOUND_ERR:
+					alert('File Not Found!');
+					break;
+				case evt.target.error.NOT_READABLE_ERR:
+					alert('File is not readable');
+					break;
+				case evt.target.error.ABORT_ERR:
+					alert('File read cancelled');
+					break; // noop
+				default:
+					alert('An error occurred reading this file.');
+			};
+		};
+		reader.onloadend = function (evt) {
+			if (evt.target.readyState == FileReader.DONE)
+				document.getElementById('jsonstrta').value = evt.target.result;
+		};
+		// Read in the image file as a binary string.
+		reader.readAsText(evt.target.files[0]);
+	}
+	//    var files = evt.target.files; // FileList object
+
+	// files is a FileList of File objects. List some properties.
+	//	document.getElementById('jsonstrta').value = evt.target.fileInput;
+	//	}
+
+	function loadConfigFromText() {
+		var str = document.getElementById('jsonstrta').value;
+		var obj;
+		try {
+			obj = JSON.parse(str);
+		} catch (e) {
+			obj = null;
+		};
+		if (obj && obj.converted)
+			delete obj.converted;
+		if (obj) {
+			load(obj, function () {
+				return null
+			});
+		} else alert('json not valid or no data!');
+
 	}
 </script>
 
 <div id="adapter-container">
-	<table>
-		<tr>
-			<td>
-				<img src="systeminfo.png" alt="SystemInfo" height="30" width="30" />
-			</td>
-			<td style="padding-top: 20px;padding-left: 10px">
-				<h3 class="translate">SystemInfo adapter settings</h3>
-			</td>
-		</tr>
-	</table>
-	<p>
-		<span class="translate">Startup commands</span>
-		<textarea class="value" id="startup" style="width:90%;height:80px"></textarea>
-		<br>
-	</p>
-	<div id="items" style="width: 100%; height: calc(80% - 40px)">
+	<div id="startup" style="width: 100%; height: 12%">
+		<table>
+			<tr>
+				<td>
+					<img src="systeminfo.png" alt="SystemInfo" height="30" width="30" />
+				</td>
+				<td style="padding-top: 20px;padding-left: 10px" width="30%">
+					<h3 class="translate">SystemInfo adapter settings</h3>
+				</td>
+				<td width="2%"></td>
+				<td width="67%">
+					<p>
+						<br>
+						<span class="translate">Startup commands</span>
+						<br>
+						<textarea class="value" id="startup" style="width:50%;height:75px"></textarea>
+					</p>
+
+				</td>
+			</tr>
+		</table>
+	</div>
+	<div id="items" style="width: 100%; height: calc(76% - 40px)">
 		<button class="table-button-add" style="margin-left: 10px; width: 1.5em; height: 1.5em"></button>&nbsp;
 		<span class="translate">Items setup</span>
 		<div style="width: 100%; height: calc(100% - 30px); overflow: auto;">
@@ -454,15 +543,25 @@
 						<th data-name="write" style="width: 13%" class="translate">WriteCommand</th>
 						<th data-name="sched" style="width: 10%" class="translate">Schedule</th>
 						<!--<th data-name="poll" data-type="select" data-options="normal;fast;slow" style="width: 5%" class="translate">Poll</th>
-					-->	<th data-buttons="delete" style="width: 2%"></th>
+					-->
+						<th data-buttons="delete" style="width: 2%"></th>
 					</tr>
 				</thead>
 			</table>
 		</div>
 	</div>
-	<p>
-		<span class="translate">On save adapter restarts with new config immediately</span>
-	</p>
+	<div id="save" style="width: 100%; height: 12%">
+		<p>
+			<span class="translate">On save adapter restarts with new config immediately</span>
+			<span class="translate">Save/load config</span>
+			<button id="jsonString" style="margin-left: 10px;" onclick="configtojson();">Create Json text</button>&nbsp;&nbsp;&nbsp;
+			<a id="exportFile" class="myButton" download="" href="#">Create Json and download file</a>&nbsp;&nbsp;&nbsp;&nbsp;
+			Load File:&nbsp;<input type="file" id="fileJsonInput" name="fileInput" />&nbsp;&nbsp;&nbsp;&nbsp;
+			<button id="textJson" style="margin-left: 10px;" onclick="loadConfigFromText();">Use Config from textBox</button>
+			<br>
+			<textarea class="value" id="jsonstrta" style="width:80%;height:80px"></textarea>
+		</p>
+	</div>
 </div>
 
 </html>

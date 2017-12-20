@@ -1,20 +1,16 @@
 {
     "common": {
         "name": "systeminfo",
-        "version": "0.2.2",
+        "version": "0.3.0",
         "title": "Systeminfo Adapter to get data from systems",
         "news": {
-            "1.8.0": {
-                "en": "Added states which you can set with on/off or level values",
+            "0.3.0": {
+                "en": "Added save and load of configuration",
                 "de": "States können erzeugt werden welche ein/aus simulieren oder levels können"
             },
-            "1.7.0": {
-                "en": "A1 devices fields changed to correct original mistakes in unit and type",
-                "de": "Verarbeitung von A1-Geräten geändert um Daten besser anzuzeigen."
-            },
-            "1.6.0": {
-                "en": "Adapter handles RM, SP and A1 devices and can rescan them, it should be able to learn RF codes frr RM-Plus devices",
-                "de": "Adapter verarbeitet RM-, SP- und A1-Geräte und sollte auch Funkbefehle von RM-Plus lernen können"
+            "0.2.2": {
+                "en": "Public beta update, everything should work",
+                "de": "Public Beta Update, alles sollte funktionieren"
             },
             "0.0.1": {
                 "en": "Adapter handles normal system info mainly for Linux",

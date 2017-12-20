@@ -499,7 +499,7 @@ function doPoll(plist) {
 								if ((jp = item.conv.match(reIsRegExp))) {
 									jp = new RegExp(jp[1], jp[2]);
 									jp = res.match(jp);
-									res = jp ? jp[2] : res;
+									res = jp ? jp[1] : res;
 									//								} else if ((jp = item.conv.match(reIsEvalWrite))) {
 									//									res = WebQuery.eval(jp[1],res);
 								}
