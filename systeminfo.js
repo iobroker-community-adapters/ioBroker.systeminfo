@@ -7,7 +7,7 @@
 // jshint node:true, esversion:6, strict:true, undef:true, unused:true
 "use strict";
 const utils = require('./lib/utils'),
-	adapter = utils.adapter('systeminfo'),
+	adapter = utils.Adapter('systeminfo'),
 	//	dns = require('dns'),
 	assert = require('assert'),
 	A = require('./myAdapter'),
