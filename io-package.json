@@ -103,7 +103,7 @@
         }, {
             "name": "Currency.[currency/rate]",
             "type": "web",
-            "source": "http://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
+            "source": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
             "regexp": "Cube.Cube.Cube[?(@.currency=='USD' || @.currency=='GBP')]",
             "conv": "xml",
             "role": "number | €/?",
