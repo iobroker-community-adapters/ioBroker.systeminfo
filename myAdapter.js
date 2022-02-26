@@ -41,7 +41,7 @@ class MyAdapter {
     static initAdapter() {
         states = {};
         this.D(`Adapter ${this.ains} starting.`);
-        this.getObjectList = this.c2p(adapter.objects.getObjectList);
+        this.getObjectList = this.c2p(adapter.getObjectList);
         this.getForeignState = this.c2p(adapter.getForeignState);
         this.setForeignState = this.c2p(adapter.setForeignState);
         this.getState = this.c2p(adapter.getState);
