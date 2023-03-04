@@ -32,7 +32,7 @@
     "grunt-contrib-jshint": "^2.1.0",
     "grunt-jscs": "^3.0.1",
     "grunt-http": "^2.3.3",
-    "mocha": "^4.1.0",
+    "mocha": "^10.2.0",
     "chai": "^4.2.0"
   },
   "main": "systeminfo.js",
