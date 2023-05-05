@@ -12,7 +12,21 @@
     "Web",
     "Files"
   ],
-  "repository": {
+  "title": "System Info",
+  "titleLang": {
+    "en": "System Info",
+    "de": "System Info",
+    "ru": "System Info",
+    "pt": "System Info",
+    "nl": "System Info",
+    "fr": "System Info",
+    "it": "System Info",
+    "es": "System Info",
+    "pl": "System Info",
+    "uk": "System Info",
+    "zh-cn": "System Info"
+  },
+"repository": {
     "type": "git",
     "url": "git+https://github.com/frankjoke/ioBroker.systeminfo.git"
   },
