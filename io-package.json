@@ -3,6 +3,19 @@
         "name": "systeminfo",
         "version": "0.3.0",
         "title": "Systeminfo Adapter to get data from systems",
+        "titleLang": {
+            "en": "System Info",
+            "de": "System Info",
+            "ru": "System Info",
+            "pt": "System Info",
+            "nl": "System Info",
+            "fr": "System Info",
+            "it": "System Info",
+            "es": "System Info",
+            "pl": "System Info",
+            "uk": "System Info",
+            "zh-cn": "System Info"
+        },
         "news": {
             "0.3.0": {
                 "en": "Added save and load of configuration",
