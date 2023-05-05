@@ -24,6 +24,7 @@
         "platform": "Javascript/Node.js",
         "mode": "daemon",
         "icon": "systeminfo.png",
+        "materialize": true,
         "enabled": true,
         "messagebox": false,
         "subscribe": "messagebox_",
