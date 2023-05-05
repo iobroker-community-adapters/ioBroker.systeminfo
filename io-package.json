@@ -21,6 +21,7 @@
             "en": "Adapter get (or set) data from systems or the web",
             "de": "Adapter kann Daten vom System oder vom Web lesen"
         },
+        "license": "MIT",
         "platform": "Javascript/Node.js",
         "mode": "daemon",
         "icon": "systeminfo.png",
