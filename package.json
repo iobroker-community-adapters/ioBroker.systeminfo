@@ -4,7 +4,7 @@
   "description": "ioBroker (system)info Adapter",
   "author": "Frank Joke <frankjoke@hotmail.com>",
   "contributors": [],
-  "homepage": "https://github.com/frankjoke/ioBroker.systeminfo",
+  "homepage": "https://github.com/nkjokefra/ioBroker.systeminfo",
   "license": "MIT",
   "keywords": [
     "ioBroker",
