@@ -46,7 +46,7 @@
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-prettier": "^4.2.1",
     "grunt": "^1.1.0",
-    "grunt-replace": "^1.0.1",
+    "grunt-replace": "^2.0.2",
     "grunt-contrib-jshint": "^2.1.0",
     "grunt-jscs": "^3.0.1",
     "grunt-http": "^2.3.3",
