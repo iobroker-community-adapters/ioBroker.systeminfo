@@ -64,6 +64,56 @@
             {
                 "js-controller": ">=3.3.22"
             }
+        ],
+        "messages": [
+            {
+                "condition": {
+                    "operand": "and",
+                    "rules": ["oldVersion<1.0.0", "newVersion>=1.0.0"]
+                },
+                "title": {
+                    "en": "Important notice!",
+                    "de": "Wichtiger Hinweis!",
+                    "ru": "Важное замечание!",
+                    "pt": "Notícia importante!",
+                    "nl": "Belangrijke mededeling!",
+                    "fr": "Avis important!",
+                    "it": "Avviso IMPORTANTE!",
+                    "es": "Noticia importante!",
+                    "pl": "Ważna uwaga!",
+                    "zh-cn": "重要通知!",
+                    "uk": "Важливе повідомлення!"
+                },
+                "text": {
+                    "en": "This release consolidates current github level of code and implements changes to support upcoming js-controller 5.x. As release 0.3.1 has not been stored at github, there are chances that changes delivered with 0.3.1 got lost. Please create a issue at ioBroker.systeminfo repository if you detect such a case. And please ensure that you have a working backup before installing this release.",
+                    "de": "Diese Veröffentlichung konsolidiert den aktuellen Codestand auf Github und implementiert Änderungen zur Unterstützung des kommenden js-controllers 5.x. Da bei Github kein Release 0.3.1 gespeichert wurde, besteht die Gefahr, dass mit 0.3.1 gelieferte Änderungen verloren gegangen sind. Bitte erstellen Sie ein Issue im ioBroker.systeminfo repository, wenn Sie einen solchen Fall erkennen. Und bitte stellen Sie sicher, dass Sie ein funktionierendes Backup haben, bevor Sie diese Release installieren.",
+                    "ru": "Этот выпуск консолидирует текущий уровень кода github и внедряет изменения в поддержку предстоящего js-controller 5.x Как релиз 0.3.1 не хранится в github, есть шансы, которые изменения, доставленные с 0.3.1 утрачены. Пожалуйста, создайте проблему на ioBroker. repository systeminfo если вы обнаружите такой случай. И, пожалуйста, убедитесь, что у вас есть работая резервное копирование перед установкой этого релиза.",
+                    "pt": "Esta versão consolida o nível do github atual de código e implementa alterações para suportar js-controller 5.x Como a versão 0.3.1 não foi armazenada no github, há chances de que as mudanças entregues com 0.3.1 se perderam. Por favor crie um problema no ioBroker. repositório systeminfo se você detectar tal caso. E por favor certifique-se de que você tem um backup de trabalho antes de instalar esta versão.",
+                    "nl": "Deze vrijlating consolideert de huidige github niveau van code en implementaties veranderen om Js-controller 5 te ondersteunen. Terwijl 0.3.1 niet opgeslagen is bij github, zijn er kansen dat veranderingen met 0.3.1 verdwaald zijn. Maak alsjeblieft een probleem bij ioBroker. Systeemherbergage als je zo'n zaak ontdekt. En zorg dat je een werkende back-up hebt voor je deze vrijlating installeert.",
+                    "fr": "Cette version consolide le niveau de github actuel de code et met en œuvre des changements pour soutenir js-controller 5.x Comme la version 0.3.1 n'a pas été stockée à github, il y a des chances que les changements livrés avec 0.3.1 se soient perdus. S'il vous plaît créer un problème à ioBroker. dépôt systeminfo si vous détectez un tel cas. Et s'il vous plaît assurez-vous que vous avez une sauvegarde de travail avant d'installer cette version.",
+                    "it": "Questa versione consolida l'attuale livello github di codice e implementa le modifiche per supportare il prossimo js-controller 5.x Poiché il rilascio 0.3.1 non è stato memorizzato a github, ci sono possibilità che i cambiamenti consegnati con 0.3.1 si siano persi. Si prega di creare un problema a ioBroker. systeminfo repository se si rileva un caso del genere. E si prega di assicurarsi di avere un backup di lavoro prima di installare questa release.",
+                    "es": "Esta versión consolida el nivel actual de código github e implementa cambios para apoyar el próximo js-controller 5.x Como la liberación 0.3.1 no se ha almacenado en github, hay posibilidades de que los cambios entregados con 0.3.1 se hayan perdido. Por favor, cree un problema en ioBroker. sistemainfo repositorio si detecta tal caso. Y por favor asegúrese de tener una copia de seguridad de trabajo antes de instalar esta versión.",
+                    "pl": "Pozwoliło to na konsolidację aktualnego poziomu kodu i wdrożenie zmian w celu wspierania nadchodzącego kontrolera 5.x. W chwili premiery 0,3.1 nie było przechowywanych w github, istnieją przypadki, które zaginęły 0,3.1 osób. Proszę tworzyć na ioBroker. W przypadku wykrywania takiej sytuacji. Załóżmy, że będziecie pracować przed rozpoczęciem tego wydania.",
+                    "uk": "Цей реліз консолідує поточний рівень github і реалізує зміни для підтримки майбутніх js-controller 5.x Як випустити 0.3.1 не зберігається в github, є шанси, що зміни, доставлені з 0,3.1 втратили. Будь ласка, створіть питання в ioBroker. Якщо ви виявите такий випадок. І переконайтеся, що у вас є робоча резервна копія перед установкою цього релізу.",
+                    "zh-cn": "这一释放巩固了目前编码水平,并实施了改变,以支助即将到来的丛林。 由于释放的0.3.1尚未存放在廷布,因此有丧失了30.1处的改变。 请在ioBroker设立一个问题。 如果你发现这种情况,系统存放处。 并请确保你在安排这一释放之前能够工作。."
+                },
+                "link": "https://github.com/iobroker-community-adapters/ioBroker.systeminfo#changelog",
+                "level": "warn",
+                "linkText": {
+                    "en": "Changelog",
+                    "de": "Änderungsprotokoll",
+                    "ru": "Список изменений",
+                    "pt": "Registro de alterações",
+                    "nl": "Wijzigingslog",
+                    "fr": "Journal des modifications",
+                    "it": "Registro delle modifiche",
+                    "es": "registro de cambios",
+                    "pl": "Dziennik zmian",
+                    "zh-cn": "变更日志",
+                    "uk": "Журнал змін"
+                },
+                "buttons": ["agree", "cancel"]
+            }
         ]
     },
     "native": {
