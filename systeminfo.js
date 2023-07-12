@@ -10,7 +10,7 @@
 //const utils = require('./lib/utils');
 //const adapter = utils.Adapter('systeminfo');
 const utils = require('@iobroker/adapter-core');
-const adapter = utils.adapter(/* options */);
+const adapter = utils.adapter('systeminfo');
 //const	dns = require('dns');
 const assert = require('assert');
 const A = require('./myAdapter');
