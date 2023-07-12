@@ -2,20 +2,6 @@
     "common": {
         "name": "systeminfo",
         "version": "0.3.0",
-        "title": "Systeminfo Adapter to get data from systems",
-        "titleLang": {
-            "en": "System Info",
-            "de": "System Info",
-            "ru": "System Info",
-            "pt": "System Info",
-            "nl": "System Info",
-            "fr": "System Info",
-            "it": "System Info",
-            "es": "System Info",
-            "pl": "System Info",
-            "uk": "System Info",
-            "zh-cn": "System Info"
-        },
         "news": {
             "0.3.0": {
                 "en": "Added save and load of configuration",
@@ -30,10 +16,34 @@
                 "de": "Adapter verarbeitet hauptsächlich Linux-Systeminformation"
             }
         },
-        "desc": {
-            "en": "Adapter get (or set) data from systems or the web",
-            "de": "Adapter kann Daten vom System oder vom Web lesen"
+        "title": "Systeminfo Adapter to get data from systems",
+        "titleLang": {
+            "en": "System Info",
+            "de": "System Info",
+            "ru": "System Info",
+            "pt": "System Info",
+            "nl": "System Info",
+            "fr": "System Info",
+            "it": "System Info",
+            "es": "System Info",
+            "pl": "System Info",
+            "uk": "System Info",
+            "zh-cn": "System Info"
         },
+        "desc": {
+            "en": "Adapter to get (or set) data from systems or the web",
+            "de": "Adapter zum Lesen (oder Schreiben) von Daten von Systemen oder aus dem Web",
+            "ru": "Адаптер, чтобы получить (или установить) данные из систем или веб",
+            "pt": "Adaptador para obter (ou definir) dados de sistemas ou web",
+            "nl": "Vertaling:",
+            "fr": "Adaptateur pour obtenir (ou définir) des données de systèmes ou du web",
+            "it": "Adattatore per ottenere (o impostare) i dati dai sistemi o dal web",
+            "es": "Adaptador para obtener (o establecer) datos de sistemas o la web",
+            "pl": "Adapter to get (lub set) data from systems or web pages (ang.)",
+            "uk": "Перехідник для отримання (або встановлення) даних з систем або веб",
+            "zh-cn": "获取(或)系统或网络的数据"
+        },
+        "authors": ["ioBroker community, mcm1957 <mcm57@gmx.at>"],
         "license": "MIT",
         "platform": "Javascript/Node.js",
         "mode": "daemon",
@@ -41,12 +51,19 @@
         "enabled": true,
         "messagebox": false,
         "subscribe": "messagebox_",
-        "extIcon": "https://raw.githubusercontent.com/frankjoke/ioBroker.systeminfo/master/admin/systeminfo.png",
+        "extIcon": "https://raw.githubusercontent.com/iobroker-community-adapters/ioBroker.systeminfo/master/admin/systeminfo.png",
         "keywords": ["Systeminfo", "System", "Web", "Files", "JSON", "HTTP", "XML"],
-        "readme": "https://github.com/frankjoke/ioBroker.systeminfo/blob/master/README.md",
+        "readme": "https://github.com/iobroker-community-adapters/ioBroker.systeminfo/blob/master/README.md",
         "loglevel": "info",
         "type": "misc-data",
-        "authors": ["Frank Joke <frankjoke@hotmail.com>"]
+        "compact": false,
+        "connectionType": "local",
+        "dataSource": "poll",
+        "dependencies": [
+            {
+                "js-controller": ">=3.3.22"
+            }
+        ]
     },
     "native": {
         "startup": "#\ngpio mode 1 output\n#rpi: echo none >/sys/class/leds/led0/trigger\necho none >/sys/class/leds/green_led/trigger",

@@ -2,9 +2,9 @@
   "name": "iobroker.systeminfo",
   "version": "0.3.0",
   "description": "ioBroker (system)info Adapter",
-  "author": "Frank Joke <frankjoke@hotmail.com>",
-  "contributors": [],
-  "homepage": "https://github.com/nkjokefra/ioBroker.systeminfo",
+  "author": "ioBroker community <mcm57@gmx.at>",
+  "contributors": ["Frank Joke <frankjoke@hotmail.com>", "mcm1957 <mcm57@gmx.at> "],
+  "homepage": "https://github.com/iobroker-community-adapters/ioBroker.systeminfo",
   "license": "MIT",
   "keywords": [
     "ioBroker",
@@ -14,7 +14,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/frankjoke/ioBroker.systeminfo.git"
+    "url": "git+https://github.com/iobroker-community-adapters/ioBroker.systeminfo.git"
   },
   "engines": {
     "node": ">=4.3.0"
@@ -46,11 +46,6 @@
     "eslint": "^8.44.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-prettier": "^4.2.1",
-    "grunt": "^1.1.0",
-    "grunt-contrib-jshint": "^3.2.0",
-    "grunt-http": "^2.3.3",
-    "grunt-jscs": "^3.0.1",
-    "grunt-replace": "^2.0.2",
     "mocha": "^10.2.0",
     "prettier": "^3.0.0",
     "proxyquire": "^2.1.3",
