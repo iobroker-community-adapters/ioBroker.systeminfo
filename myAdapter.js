@@ -70,12 +70,12 @@ class MyAdapter {
         return (
             !adapter.config.forceinit
                 ? this.resolve({
-                      rows: [],
-                  })
+                    rows: [],
+                })
                 : this.getObjectList({
-                      startkey: this.ain,
-                      endkey: this.ain + '\u9999',
-                  })
+                    startkey: this.ain,
+                    endkey: this.ain + '\u9999',
+                })
         )
             .then((res) => (res.rows.length > 0 ? this.D(`will remove ${res.rows.length} old states!`, res) : res))
             .then((res) => this.seriesOf(res.rows, (i) => this.removeState(i.doc.common.name), 2))
@@ -159,9 +159,9 @@ class MyAdapter {
             .on('stateChange', (id, state) =>
                 state && state.from !== 'system.adapter.' + this.ains && stateChange
                     ? stateChange(this.D(`stateChange called for ${id} = ${this.O(state)}`, id), state).then(
-                          () => true,
-                          (err) => this.W(`Error in StateChange for ${id} = ${this.O(err)}`),
-                      )
+                        () => true,
+                        (err) => this.W(`Error in StateChange for ${id} = ${this.O(err)}`),
+                    )
                     : null,
             );
 
@@ -354,16 +354,17 @@ class MyAdapter {
         return date instanceof Date
             ? new Date(date.getTime() - date.getTimezoneOffset() * 60000)
             : typeof date === 'string'
-            ? new Date(Date.parse(date) - new Date().getTimezoneOffset() * 60000)
-            : !isNaN(+date)
-            ? new Date(+date - new Date().getTimezoneOffset() * 60000)
-            : new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+                ? new Date(Date.parse(date) - new Date().getTimezoneOffset() * 60000)
+                : !isNaN(+date)
+                    ? new Date(+date - new Date().getTimezoneOffset() * 60000)
+                    : new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
     }
     static dateTime(date) {
         return this.locDate(date).toISOString().slice(0, -5).replace('T', '@');
     }
     static obToArray(obj) {
         return Object.keys(obj)
+            // eslint-disable-next-line no-prototype-builtins
             .filter((x) => obj.hasOwnProperty(x))
             .map((i) => obj[i]);
     }
@@ -371,11 +372,12 @@ class MyAdapter {
         return this.T(obj, {})
             ? obj[value] !== undefined
             : this.T(obj, [])
-            ? obj.find((x) => x === value) !== undefined
-            : obj === value;
+                ? obj.find((x) => x === value) !== undefined
+                : obj === value;
     }
 
     static ownKeys(obj) {
+        // eslint-disable-next-line no-prototype-builtins
         return this.T(obj, {}) ? Object.keys(obj).filter((k) => obj.hasOwnProperty(k)) : [];
     }
 
@@ -465,12 +467,12 @@ class MyAdapter {
         return !fw()
             ? this.resolve(true)
             : fn()
-                  .then(
-                      () => true,
-                      () => true,
-                  )
-                  .then(() => this.wait(time))
-                  .then(() => this.while(fw, fn, time));
+                .then(
+                    () => true,
+                    () => true,
+                )
+                .then(() => this.wait(time))
+                .then(() => this.while(fw, fn, time));
     }
 
     static repeat(/** number */ nretry, /** function */ fn, arg) {
@@ -501,6 +503,7 @@ class MyAdapter {
         if (this.T(opt) === 'object') {
             opt = this.clone(opt);
             if (!turl || !(turl instanceof url.Url)) turl = new url.Url(opt.url);
+            // eslint-disable-next-line no-prototype-builtins
             for (const i of Object.keys(opt)) if (opt.hasOwnProperty(i) && i !== 'url') turl[i] = opt[i];
         }
         //        this.D(`mup ret: ${this.O(turl)}`);
@@ -510,6 +513,7 @@ class MyAdapter {
     static request(opt, value, transform) {
         if (this.T(opt) === 'string') opt = this.url(opt.trim());
         if (!(opt instanceof url.Url)) {
+            // eslint-disable-next-line no-prototype-builtins
             if (this.T(opt) !== 'object' || !opt.hasOwnProperty('url'))
                 return Promise.reject(this.W(`Invalid opt or Url for request: ${this.O(opt)}`));
             opt = this.url(opt.url, opt);
@@ -632,8 +636,8 @@ class MyAdapter {
         if (typeof id === 'string')
             ido = id.endsWith('Percent')
                 ? {
-                      unit: '%',
-                  }
+                    unit: '%',
+                }
                 : {};
         else if (typeof id.id === 'string') {
             id = id.id;
