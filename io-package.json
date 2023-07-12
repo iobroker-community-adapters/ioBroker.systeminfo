@@ -38,264 +38,280 @@
         "platform": "Javascript/Node.js",
         "mode": "daemon",
         "icon": "systeminfo.png",
-        "materialize": true,
         "enabled": true,
         "messagebox": false,
         "subscribe": "messagebox_",
         "extIcon": "https://raw.githubusercontent.com/frankjoke/ioBroker.systeminfo/master/admin/systeminfo.png",
-        "keywords": [
-            "Systeminfo",
-            "System",
-            "Web",
-            "Files",
-            "JSON",
-            "HTTP",
-            "XML"
-        ],
+        "keywords": ["Systeminfo", "System", "Web", "Files", "JSON", "HTTP", "XML"],
         "readme": "https://github.com/frankjoke/ioBroker.systeminfo/blob/master/README.md",
         "loglevel": "info",
         "type": "misc-data",
-        "authors": [
-            "Frank Joke <frankjoke@hotmail.com>"
-        ]
+        "authors": ["Frank Joke <frankjoke@hotmail.com>"]
     },
     "native": {
         "startup": "#\ngpio mode 1 output\n#rpi: echo none >/sys/class/leds/led0/trigger\necho none >/sys/class/leds/green_led/trigger",
-        "items": [{
-            "name": "System.Temperature",
-            "type": "file",
-            "source": "/sys/class/thermal/thermal_zone0/temp",
-            "regexp": "",
-            "conv": "number",
-            "role": "value.temperature|°C",
-            "write": "",
-            "sched": "*:/2"
-        }, {
-            "name": "-System.Memory_[used, free, available]",
-            "type": "exec",
-            "source": "free -k",
-            "regexp": "Mem\\:\\s+\\d+\\s+(\\d+)\\s+(\\d+)\\s+\\d+\\s+\\d+\\s+(\\d+)",
-            "conv": "@/1000",
-            "role": "number|MB",
-            "write": "",
-            "sched": "1 * * * * "
-        }, {
-            "name": "NAS.Space_[total, used, free]",
-            "type": "exec",
-            "source": "df -BK",
-            "regexp": "/lic\\s+(\\d+)K\\s+(\\d+)K\\s+(\\d+)/m",
-            "conv": "parseInt(@*1000/1024)/1000",
-            "role": "number|MB",
-            "write": "",
-            "sched": "1 * * * * "
-        }, {
-            "name": "GPIO.1",
-            "type": "exec",
-            "source": "gpio read 1",
-            "regexp": "",
-            "conv": "!parseInt(@)",
-            "role": "switch",
-            "write": "gpio write 1 @(@ ?  '0' : '1')",
-            "sched": "*/20 * * * * *"
-        }, {
-            "name": "System.Led_Green",
-            "type": "file",
-            "source": "/sys/class/leds/green_led/brightness",
-            "regexp": "",
-            "conv": "boolean",
-            "role": "switch",
-            "write": "@ ? '1' : '0' ",
-            "sched": "*/6:1"
-        }, {
-            "name": "System.Led_Red",
-            "type": "file",
-            "source": "/sys/class/leds/red_led/brightness",
-            "regexp": "",
-            "conv": "boolean",
-            "role": "switch",
-            "write": "@ ? '1' : '0'",
-            "sched": "*/6:1"
-        }, {
-            "name": "Currency.[currency/rate]",
-            "type": "web",
-            "source": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
-            "regexp": "Cube.Cube.Cube[?(@.currency=='USD' || @.currency=='GBP')]",
-            "conv": "xml",
-            "role": "number | €/?",
-            "write": "",
-            "sched": "19:10:10"
-        }, {
-            "name": "Currency.BTC_CNY",
-            "type": "web",
-            "source": "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=BTC&to_currency=CNY&apikey=demo",
-            "regexp": "[0][4]",
-            "conv": "json",
-            "role": "number | CNY",
-            "write": "",
-            "sched": "19:10:10"
-        }, {
-            "name": "HP_Photosmart_7520.[name/value]",
-            "type": "web",
-            "source": "http://HPC56C03-PS7520/DevMgmt/ConsumableConfigDyn.xml",
-            "regexp": "ConsumableInfo[?(@.Capacity)][(@.res = {name:@.ConsumableLabelCode, value: @.ConsumablePercentageLevelRemaining + ', '+@.ConsumableIcon.Shape+', '+@.Installation.Date+', '+@.ConsumableSelectibilityNumber},'res')]",
-            "conv": "xml",
-            "role": "json",
-            "write": "",
-            "sched": "*/6:3"
-        }, {
-            "name": "UWZ",
-            "type": "web",
-            "source": "http://feed.alertspro.meteogroup.com/AlertsPro/AlertsProPollService.php?method=getWarning&language=de&areaID=UWZAT02402",
-            "regexp": "..translationsShortText.DE",
-            "conv": "json",
-            "role": "json",
-            "write": "",
-            "sched": "*:1"
-        }, {
-            "name": "-TestSystem.processes.[command/pcpu]",
-            "type": "info",
-            "source": "processes",
-            "regexp": "list[?(@.user == 'pi')]",
-            "conv": "",
-            "role": "",
-            "write": "",
-            "sched": "*:2"
-        }, {
-            "name": "-XS2.[name/value]",
-            "type": "web",
-            "source": "http://xs1/control.html'",
-            "regexp": "{\"l[?(@.value  !== null )]\": {\"l[tr]\": { '![@.children()]':0, name: {_eq:1}, value: {_eq:2, _conv:\"parseInt(@.slice(0,-1))\"}}, _filter: ($) => $[0].childNodes.length==3}}",
-            "conv": "html",
-            "role": "",
-            "write": "",
-            "sched": "`:*:*/20"
-        }, {
-            "name": "MSFT.[*]",
-            "type": "web",
-            "source": "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=MSFT&apikey=demo",
-            "regexp": "[1:2][0:1]",
-            "conv": "json",
-            "role": "number",
-            "write": "",
-            "sched": "19:10:10"
-        }, {
-            "name": "System.[Mem_used, Mem_free, Swap_used]",
-            "type": "info",
-            "source": "mem",
-            "regexp": "[used,free,swapused]",
-            "conv": "parseInt(@*(1000/1024/1024))/1000",
-            "role": "number|MB",
-            "write": "",
-            "sched": "*:/1"
-        }, {
-            "name": "System.Software.[*]",
-            "type": "info",
-            "source": "osInfo",
-            "regexp": "",
-            "conv": "",
-            "role": "string",
-            "write": "",
-            "sched": "*/3:58"
-        }, {
-            "name": "System.Software.[*]",
-            "type": "info",
-            "source": "versions",
-            "regexp": "",
-            "conv": "",
-            "role": "string",
-            "write": "",
-            "sched": "*/3:58"
-        }, {
-            "name": "System.FileSystem.[fs/use]",
-            "type": "info",
-            "source": "fsSize",
-            "regexp": "*",
-            "conv": "",
-            "role": "number|%",
-            "write": "",
-            "sched": "*/3:58"
-        }, {
-            "name": "System.FileSystem.IO_[Read,Write]",
-            "type": "info",
-            "source": "fsStats",
-            "regexp": "[rx,wx]",
-            "conv": "parseInt(@*(1000/1024/1024))/1000",
-            "role": "number|MB",
-            "write": "",
-            "sched": "*:/1"
-        }, {
-            "name": "System.Network.[iface/]",
-            "type": "info",
-            "source": "networkInterfaces",
-            "regexp": "*",
-            "conv": "",
-            "role": "",
-            "write": "",
-            "sched": "*/3:58"
-        }, {
-            "name": "System.Network.Connections.[name/value]",
-            "type": "info",
-            "source": "networkConnections",
-            "regexp": "[*][!(@.localaddress == @.peeraddress ? null :  {name:`${@.protocol}:${@.localaddress.replace(/\\./g,'_')}:${@.localport}`, value:`${@.state}:${@.peeraddress}:${@.peerport}`})]",
-            "conv": "",
-            "role": "string",
-            "write": "",
-            "sched": "*:/1"
-        }, {
-            "name": "System.Network.MB_[Received,Sent]",
-            "type": "info",
-            "source": "networkStats",
-            "regexp": "[rx,tx]",
-            "conv": "parseInt(@*(1000/1024/1024))/1000",
-            "role": "number|MB",
-            "write": "",
-            "sched": "*:/1"
-        }, {
-            "name": "System.Network.FritzBox.[*]",
-            "type": "info",
-            "source": "inetChecksite(\"http://fritz.box\")",
-            "regexp": "",
-            "conv": "",
-            "role": "",
-            "write": "",
-            "sched": "*:/1"
-        }, {
-            "name": "System.Network.Latency",
-            "type": "info",
-            "source": "inetLatency",
-            "regexp": "",
-            "conv": "",
-            "role": "number|ms",
-            "write": "",
-            "sched": "*:/1"
-        }, {
-            "name": "System.Load.[Load,User,System,Idle]",
-            "type": "info",
-            "source": "currentLoad",
-            "regexp": "[currentload, currentload_user, currentload_system, currentload_idle]",
-            "conv": "parseInt(@*1000)/1000",
-            "role": "number|ms",
-            "write": "",
-            "sched": "*:*:/10"
-        }, {
-            "name": "TankerKönig.[name/diesel]",
-            "type": "web",
-            "source": "https://creativecommons.tankerkoenig.de/json/list.php?lat=52.521&lng=13.438&rad=1.5&sort=dist&type=all&apikey=00000000-0000-0000-0000-000000000002",
-            "regexp": "stations[?(@.name += ' ' + @.street, @.diesel)]",
-            "conv": "json",
-            "role": "number | €",
-            "write": "",
-            "sched": "/3:2"
-        }, {
-            "name": "TVProgramm.[name/text]",
-            "type": "web",
-            "source": "http://www.tvmovie.de/tv/programm-jetzt",
-            "regexp": "{\"[0][*][!(({name: @.name.split(' ')[0], text: @.name.split(' ').slice(@.name.slice(' ').indexOf('Seit')).join(' ')}))]\":{'[section[class=item]]': {'name[span[class=h2]]':0}}}",
-            "conv": "html",
-            "role": "",
-            "write": "",
-            "sched": "/1:0"
-        }]
+        "items": [
+            {
+                "name": "System.Temperature",
+                "type": "file",
+                "source": "/sys/class/thermal/thermal_zone0/temp",
+                "regexp": "",
+                "conv": "number",
+                "role": "value.temperature|°C",
+                "write": "",
+                "sched": "*:/2"
+            },
+            {
+                "name": "-System.Memory_[used, free, available]",
+                "type": "exec",
+                "source": "free -k",
+                "regexp": "Mem\\:\\s+\\d+\\s+(\\d+)\\s+(\\d+)\\s+\\d+\\s+\\d+\\s+(\\d+)",
+                "conv": "@/1000",
+                "role": "number|MB",
+                "write": "",
+                "sched": "1 * * * * "
+            },
+            {
+                "name": "NAS.Space_[total, used, free]",
+                "type": "exec",
+                "source": "df -BK",
+                "regexp": "/lic\\s+(\\d+)K\\s+(\\d+)K\\s+(\\d+)/m",
+                "conv": "parseInt(@*1000/1024)/1000",
+                "role": "number|MB",
+                "write": "",
+                "sched": "1 * * * * "
+            },
+            {
+                "name": "GPIO.1",
+                "type": "exec",
+                "source": "gpio read 1",
+                "regexp": "",
+                "conv": "!parseInt(@)",
+                "role": "switch",
+                "write": "gpio write 1 @(@ ?  '0' : '1')",
+                "sched": "*/20 * * * * *"
+            },
+            {
+                "name": "System.Led_Green",
+                "type": "file",
+                "source": "/sys/class/leds/green_led/brightness",
+                "regexp": "",
+                "conv": "boolean",
+                "role": "switch",
+                "write": "@ ? '1' : '0' ",
+                "sched": "*/6:1"
+            },
+            {
+                "name": "System.Led_Red",
+                "type": "file",
+                "source": "/sys/class/leds/red_led/brightness",
+                "regexp": "",
+                "conv": "boolean",
+                "role": "switch",
+                "write": "@ ? '1' : '0'",
+                "sched": "*/6:1"
+            },
+            {
+                "name": "Currency.[currency/rate]",
+                "type": "web",
+                "source": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
+                "regexp": "Cube.Cube.Cube[?(@.currency=='USD' || @.currency=='GBP')]",
+                "conv": "xml",
+                "role": "number | €/?",
+                "write": "",
+                "sched": "19:10:10"
+            },
+            {
+                "name": "Currency.BTC_CNY",
+                "type": "web",
+                "source": "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=BTC&to_currency=CNY&apikey=demo",
+                "regexp": "[0][4]",
+                "conv": "json",
+                "role": "number | CNY",
+                "write": "",
+                "sched": "19:10:10"
+            },
+            {
+                "name": "HP_Photosmart_7520.[name/value]",
+                "type": "web",
+                "source": "http://HPC56C03-PS7520/DevMgmt/ConsumableConfigDyn.xml",
+                "regexp": "ConsumableInfo[?(@.Capacity)][(@.res = {name:@.ConsumableLabelCode, value: @.ConsumablePercentageLevelRemaining + ', '+@.ConsumableIcon.Shape+', '+@.Installation.Date+', '+@.ConsumableSelectibilityNumber},'res')]",
+                "conv": "xml",
+                "role": "json",
+                "write": "",
+                "sched": "*/6:3"
+            },
+            {
+                "name": "UWZ",
+                "type": "web",
+                "source": "http://feed.alertspro.meteogroup.com/AlertsPro/AlertsProPollService.php?method=getWarning&language=de&areaID=UWZAT02402",
+                "regexp": "..translationsShortText.DE",
+                "conv": "json",
+                "role": "json",
+                "write": "",
+                "sched": "*:1"
+            },
+            {
+                "name": "-TestSystem.processes.[command/pcpu]",
+                "type": "info",
+                "source": "processes",
+                "regexp": "list[?(@.user == 'pi')]",
+                "conv": "",
+                "role": "",
+                "write": "",
+                "sched": "*:2"
+            },
+            {
+                "name": "-XS2.[name/value]",
+                "type": "web",
+                "source": "http://xs1/control.html'",
+                "regexp": "{\"l[?(@.value  !== null )]\": {\"l[tr]\": { '![@.children()]':0, name: {_eq:1}, value: {_eq:2, _conv:\"parseInt(@.slice(0,-1))\"}}, _filter: ($) => $[0].childNodes.length==3}}",
+                "conv": "html",
+                "role": "",
+                "write": "",
+                "sched": "`:*:*/20"
+            },
+            {
+                "name": "MSFT.[*]",
+                "type": "web",
+                "source": "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=MSFT&apikey=demo",
+                "regexp": "[1:2][0:1]",
+                "conv": "json",
+                "role": "number",
+                "write": "",
+                "sched": "19:10:10"
+            },
+            {
+                "name": "System.[Mem_used, Mem_free, Swap_used]",
+                "type": "info",
+                "source": "mem",
+                "regexp": "[used,free,swapused]",
+                "conv": "parseInt(@*(1000/1024/1024))/1000",
+                "role": "number|MB",
+                "write": "",
+                "sched": "*:/1"
+            },
+            {
+                "name": "System.Software.[*]",
+                "type": "info",
+                "source": "osInfo",
+                "regexp": "",
+                "conv": "",
+                "role": "string",
+                "write": "",
+                "sched": "*/3:58"
+            },
+            {
+                "name": "System.Software.[*]",
+                "type": "info",
+                "source": "versions",
+                "regexp": "",
+                "conv": "",
+                "role": "string",
+                "write": "",
+                "sched": "*/3:58"
+            },
+            {
+                "name": "System.FileSystem.[fs/use]",
+                "type": "info",
+                "source": "fsSize",
+                "regexp": "*",
+                "conv": "",
+                "role": "number|%",
+                "write": "",
+                "sched": "*/3:58"
+            },
+            {
+                "name": "System.FileSystem.IO_[Read,Write]",
+                "type": "info",
+                "source": "fsStats",
+                "regexp": "[rx,wx]",
+                "conv": "parseInt(@*(1000/1024/1024))/1000",
+                "role": "number|MB",
+                "write": "",
+                "sched": "*:/1"
+            },
+            {
+                "name": "System.Network.[iface/]",
+                "type": "info",
+                "source": "networkInterfaces",
+                "regexp": "*",
+                "conv": "",
+                "role": "",
+                "write": "",
+                "sched": "*/3:58"
+            },
+            {
+                "name": "System.Network.Connections.[name/value]",
+                "type": "info",
+                "source": "networkConnections",
+                "regexp": "[*][!(@.localaddress == @.peeraddress ? null :  {name:`${@.protocol}:${@.localaddress.replace(/\\./g,'_')}:${@.localport}`, value:`${@.state}:${@.peeraddress}:${@.peerport}`})]",
+                "conv": "",
+                "role": "string",
+                "write": "",
+                "sched": "*:/1"
+            },
+            {
+                "name": "System.Network.MB_[Received,Sent]",
+                "type": "info",
+                "source": "networkStats",
+                "regexp": "[rx,tx]",
+                "conv": "parseInt(@*(1000/1024/1024))/1000",
+                "role": "number|MB",
+                "write": "",
+                "sched": "*:/1"
+            },
+            {
+                "name": "System.Network.FritzBox.[*]",
+                "type": "info",
+                "source": "inetChecksite(\"http://fritz.box\")",
+                "regexp": "",
+                "conv": "",
+                "role": "",
+                "write": "",
+                "sched": "*:/1"
+            },
+            {
+                "name": "System.Network.Latency",
+                "type": "info",
+                "source": "inetLatency",
+                "regexp": "",
+                "conv": "",
+                "role": "number|ms",
+                "write": "",
+                "sched": "*:/1"
+            },
+            {
+                "name": "System.Load.[Load,User,System,Idle]",
+                "type": "info",
+                "source": "currentLoad",
+                "regexp": "[currentload, currentload_user, currentload_system, currentload_idle]",
+                "conv": "parseInt(@*1000)/1000",
+                "role": "number|ms",
+                "write": "",
+                "sched": "*:*:/10"
+            },
+            {
+                "name": "TankerKönig.[name/diesel]",
+                "type": "web",
+                "source": "https://creativecommons.tankerkoenig.de/json/list.php?lat=52.521&lng=13.438&rad=1.5&sort=dist&type=all&apikey=00000000-0000-0000-0000-000000000002",
+                "regexp": "stations[?(@.name += ' ' + @.street, @.diesel)]",
+                "conv": "json",
+                "role": "number | €",
+                "write": "",
+                "sched": "/3:2"
+            },
+            {
+                "name": "TVProgramm.[name/text]",
+                "type": "web",
+                "source": "http://www.tvmovie.de/tv/programm-jetzt",
+                "regexp": "{\"[0][*][!(({name: @.name.split(' ')[0], text: @.name.split(' ').slice(@.name.slice(' ').indexOf('Seit')).join(' ')}))]\":{'[section[class=item]]': {'name[span[class=h2]]':0}}}",
+                "conv": "html",
+                "role": "",
+                "write": "",
+                "sched": "/1:0"
+            }
+        ]
     },
     "objects": [],
     "config": {
