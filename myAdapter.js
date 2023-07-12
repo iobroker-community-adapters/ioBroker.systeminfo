@@ -4,39 +4,59 @@
  *      MIT License
  */
 // jshint  node: true, esversion: 6, strict: true, undef: true, unused: true
-"use strict";
-const util = require('util'),
-    http = require('http'),
-    https = require('https'),
-    url = require('url'),
-    fs = require('fs'),
-    exec = require('child_process').exec,
-    assert = require('assert');
+//"use strict";
+const util = require('util');
+const http = require('http');
+const https = require('https');
+const url = require('url');
+const fs = require('fs');
+const exec = require('child_process').exec;
+const assert = require('assert');
 
-var adapter, that, main, messages, timer, stateChange, objChange, unload, name, stopping = false,
+let adapter,
+    that,
+    main,
+    messages,
+    timer,
+    stateChange,
+    objChange,
+    unload,
+    name,
+    stopping = false,
     inDebug = false,
     objects = {},
     states = {};
 
-const slog = (adapter, log, text) => adapter && adapter.log && typeof adapter.log[log] === 'function' ?
-    adapter.log[log](text) :
-    console.log(log + ': ' + text);
+const slog = (adapter, log, text) =>
+    adapter && adapter.log && typeof adapter.log[log] === 'function'
+        ? adapter.log[log](text)
+        : console.log(log + ': ' + text);
 
 class MyAdapter {
     constructor(adapter, main) {
-        if (adapter && main)
-            MyAdapter.init(adapter, main);
+        if (adapter && main) MyAdapter.init(adapter, main);
         return MyAdapter;
     }
 
     static processMessage(obj) {
-        return (obj.command === 'debug' ? this.resolve(`debug set to '${inDebug = this.parseLogic(obj.message)}'`) : messages(obj))
-            .then(res => this.D(`Message from '${obj.from}', command '${obj.command}', message '${this.S(obj.message)}' executed with result:"${this.S(res)}"`, res),
-                err => this.W(`invalid Message ${this.O(obj)} caused error ${this.O(err)}`, err))
-            .then(res => obj.callback ? adapter.sendTo(obj.from, obj.command, res, obj.callback) : undefined)
-            .then(() => this.c2p(adapter.getMessage)().then(obj => obj ? this.processMessage(obj) : true));
+        return (
+            obj.command === 'debug'
+                ? this.resolve(`debug set to '${(inDebug = this.parseLogic(obj.message))}'`)
+                : messages(obj)
+        )
+            .then(
+                (res) =>
+                    this.D(
+                        `Message from '${obj.from}', command '${obj.command}', message '${this.S(
+                            obj.message,
+                        )}' executed with result:"${this.S(res)}"`,
+                        res,
+                    ),
+                (err) => this.W(`invalid Message ${this.O(obj)} caused error ${this.O(err)}`, err),
+            )
+            .then((res) => (obj.callback ? adapter.sendTo(obj.from, obj.command, res, obj.callback) : undefined))
+            .then(() => this.c2p(adapter.getMessage)().then((obj) => (obj ? this.processMessage(obj) : true)));
     }
-
 
     static initAdapter() {
         states = {};
@@ -47,35 +67,44 @@ class MyAdapter {
         this.getState = this.c2p(adapter.getState);
         this.setState = this.c2p(adapter.setState);
 
-        return (!adapter.config.forceinit ?
-                this.resolve({
-                    rows: []
-                }) :
-                this.getObjectList({
+        return (
+            !adapter.config.forceinit
+                ? this.resolve({
+                    rows: [],
+                })
+                : this.getObjectList({
                     startkey: this.ain,
-                    endkey: this.ain + '\u9999'
-                }))
-            .then(res => res.rows.length > 0 ? this.D(`will remove ${res.rows.length} old states!`, res) : res)
-            .then(res => this.seriesOf(res.rows, (i) => this.removeState(i.doc.common.name), 2))
-            .then(res => res, err => this.E('err from MyAdapter.series: ' + err))
-            .then(() => this.getObjectList({
-                include_docs: true
-            }))
-            .then(res => {
-                res = res && res.rows ? res.rows : [];
-                objects = {};
-                for (let i of res)
-                    objects[i.doc._id] = i.doc;
-                if (objects['system.config'] && objects['system.config'].common.language)
-                    adapter.config.lang = objects['system.config'].common.language;
-                if (objects['system.config'] && objects['system.config'].common.latitude) {
-                    adapter.config.latitude = parseFloat(objects['system.config'].common.latitude);
-                    adapter.config.longitude = parseFloat(objects['system.config'].common.longitude);
-                }
-                return res.length;
-            }, err => this.E('err from getObjectList: ' + err, 'no'))
-            .then(len => this.D(`${adapter.name} received ${len} objects with config ${Object.keys(adapter.config)}`))
-            .catch(err => this.W(`Error in adapter.ready: ${err}`))
+                    endkey: this.ain + '\u9999',
+                })
+        )
+            .then((res) => (res.rows.length > 0 ? this.D(`will remove ${res.rows.length} old states!`, res) : res))
+            .then((res) => this.seriesOf(res.rows, (i) => this.removeState(i.doc.common.name), 2))
+            .then(
+                (res) => res,
+                (err) => this.E('err from MyAdapter.series: ' + err),
+            )
+            .then(() =>
+                this.getObjectList({
+                    include_docs: true,
+                }),
+            )
+            .then(
+                (res) => {
+                    res = res && res.rows ? res.rows : [];
+                    objects = {};
+                    for (const i of res) objects[i.doc._id] = i.doc;
+                    if (objects['system.config'] && objects['system.config'].common.language)
+                        adapter.config.lang = objects['system.config'].common.language;
+                    if (objects['system.config'] && objects['system.config'].common.latitude) {
+                        adapter.config.latitude = parseFloat(objects['system.config'].common.latitude);
+                        adapter.config.longitude = parseFloat(objects['system.config'].common.longitude);
+                    }
+                    return res.length;
+                },
+                (err) => this.E('err from getObjectList: ' + err, 'no'),
+            )
+            .then((len) => this.D(`${adapter.name} received ${len} objects with config ${Object.keys(adapter.config)}`))
+            .catch((err) => this.W(`Error in adapter.ready: ${err}`))
             .then(() => {
                 if (stateChange) adapter.subscribeStates('*');
                 if (objChange) adapter.subscribeObjects('*');
@@ -104,39 +133,51 @@ class MyAdapter {
         this.setForeignObject = this.c2p(adapter.setForeignObject);
         this.getForeignObjects = this.c2p(adapter.getForeignObjects);
         this.getObject = this.c2p(adapter.getObject);
-        this.deleteState = (id) => this.c1pe(adapter.deleteState)(id).catch(res => res === 'Not exists' ? this.resolve() : this.reject(res));
-        this.delObject = (id, opt) => this.c1pe(adapter.delObject)(id, opt).catch(res => res === 'Not exists' ? this.resolve() : this.reject(res));
-        this.delState = (id, opt) => this.c1pe(adapter.delState)(id, opt).catch(res => res === 'Not exists' ? this.resolve() : this.reject(res));
-        this.removeState = (id, opt) => this.delState(id, opt).then(() => this.delObject((delete this.states[id], id), opt));
+        this.deleteState = (id) =>
+            this.c1pe(adapter.deleteState)(id).catch((res) =>
+                res === 'Not exists' ? this.resolve() : this.reject(res),
+            );
+        this.delObject = (id, opt) =>
+            this.c1pe(adapter.delObject)(id, opt).catch((res) =>
+                res === 'Not exists' ? this.resolve() : this.reject(res),
+            );
+        this.delState = (id, opt) =>
+            this.c1pe(adapter.delState)(id, opt).catch((res) =>
+                res === 'Not exists' ? this.resolve() : this.reject(res),
+            );
+        this.removeState = (id, opt) =>
+            this.delState(id, opt).then(() => this.delObject((delete this.states[id], id), opt));
         this.setObject = this.c2p(adapter.setObject);
         this.createState = this.c2p(adapter.createState);
         this.extendObject = this.c2p(adapter.extendObject);
 
-        adapter.on('message', (obj) => !!obj ? this.processMessage(
-                this.D(`received Message ${this.O(obj)}`, obj)) : true)
+        adapter
+            .on('message', (obj) => (obj ? this.processMessage(this.D(`received Message ${this.O(obj)}`, obj)) : true))
             .on('unload', (callback) => this.stop(false, callback))
             .on('ready', () => this.initAdapter().then(main))
-            .on('objectChange', (id, obj) => obj && obj._id && objChange ? objChange(id, obj) : null)
-            .on('stateChange', (id, state) => state && state.from !== 'system.adapter.' + this.ains && stateChange ?
-                stateChange(this.D(`stateChange called for ${id} = ${this.O(state)}`, id), state).then(() => true,
-                    err => this.W(`Error in StateChange for ${id} = ${this.O(err)}`)
-                ) : null);
+            .on('objectChange', (id, obj) => (obj && obj._id && objChange ? objChange(id, obj) : null))
+            .on('stateChange', (id, state) =>
+                state && state.from !== 'system.adapter.' + this.ains && stateChange
+                    ? stateChange(this.D(`stateChange called for ${id} = ${this.O(state)}`, id), state).then(
+                        () => true,
+                        (err) => this.W(`Error in StateChange for ${id} = ${this.O(err)}`),
+                    )
+                    : null,
+            );
 
         return that;
     }
 
-    static J( /** string */ str, /** function */ reviewer) {
+    static J(/** string */ str, /** function */ reviewer) {
         let res;
-        if (!str)
-            return null;
-        if (this.T(str) !== 'string')
-            str = str.toString();
+        if (!str) return null;
+        if (this.T(str) !== 'string') str = str.toString();
         try {
             res = JSON.parse(str, reviewer);
         } catch (e) {
             res = {
                 error: e,
-                error_description: `${e} on string ${str}`
+                error_description: `${e} on string ${str}`,
             };
         }
         return res;
@@ -151,26 +192,28 @@ class MyAdapter {
         return Array.isArray(x) ? x.map(this.trim) : typeof x === 'string' ? x.trim() : `${x}`.trim();
     }
     static number(str) {
-        if (!isNaN(str))
-            str = str % 1 === 0 ? parseInt(str) : parseFloat(str);
+        if (!isNaN(str)) str = str % 1 === 0 ? parseInt(str) : parseFloat(str);
         return str;
     }
     static D(str, val) {
-        return (inDebug ?
-            slog(adapter, 'info', `<span style="color:darkblue;">debug: ${str}</span>`) :
-            slog(adapter, 'debug', str), val !== undefined ? val : str);
+        return (
+            inDebug
+                ? slog(adapter, 'info', `<span style="color:darkblue;">debug: ${str}</span>`)
+                : slog(adapter, 'debug', str),
+            val !== undefined ? val : str
+        );
     }
     static F() {
-        util.format.apply(null,arguments);
+        util.format.apply(null, arguments);
     }
     static I(l, v) {
-        return (slog(adapter, 'info', l), v === undefined ? l : v);
+        return slog(adapter, 'info', l), v === undefined ? l : v;
     }
     static W(l, v) {
-        return (slog(adapter, 'warn', l), v === undefined ? l : v);
+        return slog(adapter, 'warn', l), v === undefined ? l : v;
     }
     static E(l, v) {
-        return (slog(adapter, 'error', l), v === undefined ? l : v);
+        return slog(adapter, 'error', l), v === undefined ? l : v;
     }
 
     static get debug() {
@@ -235,46 +278,47 @@ class MyAdapter {
     }
 
     static parseLogic(obj) {
-        return this.includes(['0', 'off', 'aus', 'false', 'inactive'], obj.toString().trim().toLowerCase()) ?
-            false : this.includes(['1', '-1', 'on', 'ein', 'true', 'active'], obj.toString().trim().toLowerCase());
+        return this.includes(['0', 'off', 'aus', 'false', 'inactive'], obj.toString().trim().toLowerCase())
+            ? false
+            : this.includes(['1', '-1', 'on', 'ein', 'true', 'active'], obj.toString().trim().toLowerCase());
     }
     static clone(obj) {
         return JSON.parse(JSON.stringify(obj));
     }
     static wait(time, arg) {
-        return new Promise(res => setTimeout(res, time, arg));
+        return new Promise((res) => setTimeout(res, time, arg));
     }
 
     static P(pv, res, rej) {
-        if (pv instanceof Promise)
-            return pv;
-        if (pv && typeof pv.then === 'function')
-            return new Promise((rs, rj) => pv.then(rs, rj));
-        if (pv)
-            return this.resolve(res || pv);
+        if (pv instanceof Promise) return pv;
+        if (pv && typeof pv.then === 'function') return new Promise((rs, rj) => pv.then(rs, rj));
+        if (pv) return this.resolve(res || pv);
         return this.reject(rej || pv);
     }
 
     static resolve(x) {
-         return new Promise((res) => process.nextTick(() => res(x)));
+        return new Promise((res) => process.nextTick(() => res(x)));
     }
 
     static reject(x) {
-        return new Promise((res,rej) => process.nextTick(() => rej(x)));
-   }
+        return new Promise((res, rej) => process.nextTick(() => rej(x)));
+    }
 
     static pTimeout(pr, time, callback) {
-        let t = parseInt(time);
+        const t = parseInt(time);
         assert(typeof t === 'number' && t > 0, `pTimeout requires a positive number as second argument for the ms`);
         let st = null;
-        assert(callback && typeof callback === 'function', `pTimeout requires optionally a function for callback as third argument`);
+        assert(
+            callback && typeof callback === 'function',
+            `pTimeout requires optionally a function for callback as third argument`,
+        );
         return new Promise((resolve, reject) => {
-            let rs = res => {
+            const rs = (res) => {
                     if (st) clearTimeout(st);
                     st = null;
                     return resolve(res);
                 },
-                rj = err => {
+                rj = (err) => {
                     if (st) clearTimeout(st);
                     st = null;
                     return reject(err);
@@ -289,7 +333,7 @@ class MyAdapter {
     }
 
     static O(obj, level) {
-        return util.inspect(obj, { depth: level || 2, colors: false}).replace(/\n/g, '');
+        return util.inspect(obj, { depth: level || 2, colors: false }).replace(/\n/g, '');
     }
     static S(obj, level) {
         return typeof obj === 'string' ? obj : this.O(obj, level);
@@ -307,63 +351,75 @@ class MyAdapter {
         return j === undefined ? t : this.T(j) === t;
     }
     static locDate(date) {
-        return date instanceof Date ?
-            new Date(date.getTime() - date.getTimezoneOffset() * 60000) :
-            typeof date === 'string' ?
-            new Date(Date.parse(date) - (new Date().getTimezoneOffset()) * 60000) :
-            !isNaN(+date) ?
-            new Date(+date - (new Date().getTimezoneOffset()) * 60000) :
-            new Date(Date.now() - (new Date().getTimezoneOffset()) * 60000);
+        return date instanceof Date
+            ? new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+            : typeof date === 'string'
+                ? new Date(Date.parse(date) - new Date().getTimezoneOffset() * 60000)
+                : !isNaN(+date)
+                    ? new Date(+date - new Date().getTimezoneOffset() * 60000)
+                    : new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
     }
     static dateTime(date) {
         return this.locDate(date).toISOString().slice(0, -5).replace('T', '@');
     }
     static obToArray(obj) {
-        return (Object.keys(obj).filter(x => obj.hasOwnProperty(x)).map(i => obj[i]));
+        return Object.keys(obj)
+            // eslint-disable-next-line no-prototype-builtins
+            .filter((x) => obj.hasOwnProperty(x))
+            .map((i) => obj[i]);
     }
     static includes(obj, value) {
-        return this.T(obj, {}) ? obj[value] !== undefined :
-            this.T(obj, []) ? obj.find(x => x === value) !== undefined : obj === value;
+        return this.T(obj, {})
+            ? obj[value] !== undefined
+            : this.T(obj, [])
+                ? obj.find((x) => x === value) !== undefined
+                : obj === value;
     }
 
     static ownKeys(obj) {
-			return this.T(obj, {}) ? Object.keys(obj).filter(k => obj.hasOwnProperty(k)) : [];
+        // eslint-disable-next-line no-prototype-builtins
+        return this.T(obj, {}) ? Object.keys(obj).filter((k) => obj.hasOwnProperty(k)) : [];
     }
 
     static stop(dostop, callback) {
         if (stopping) return;
         stopping = true;
-        if (timer)
-            clearInterval(timer);
+        if (timer) clearInterval(timer);
         timer = null;
         this.D(`Adapter disconnected and stopped with dostop(${dostop}) and callback(${!!callback})`);
         Promise.resolve(unload ? unload(dostop) : null)
             .then(() => callback && callback())
             .catch(this.W)
-            .then(() => dostop ? this.E("Adapter will exit in lates 2 sec!", setTimeout(process.exit, 2000, 55)) : null);
+            .then(() =>
+                dostop ? this.E('Adapter will exit in lates 2 sec!', setTimeout(process.exit, 2000, 55)) : null,
+            );
     }
 
-    static seriesOf(obj, promfn, delay) { // fun gets(item) and returns a promise
+    static seriesOf(obj, promfn, delay) {
+        // fun gets(item) and returns a promise
         assert(typeof promfn === 'function', 'series(obj,promfn,delay) error: promfn is not a function!');
         delay = parseInt(delay);
         let p = Promise.resolve();
         const nv = [],
-            f = delay > 0 ? (k) => p = p.then(() => promfn(k).then(res => this.wait(delay, nv.push(res)))) :
-            (k) => p = p.then(() => promfn(k));
-        for (let item of obj)
-            f(item);
+            f =
+                delay > 0
+                    ? (k) => (p = p.then(() => promfn(k).then((res) => this.wait(delay, nv.push(res)))))
+                    : (k) => (p = p.then(() => promfn(k)));
+        for (const item of obj) f(item);
         return p.then(() => nv);
     }
 
-    static seriesIn(obj, promfn, delay) { // fun gets(item,object) and returns a promise
+    static seriesIn(obj, promfn, delay) {
+        // fun gets(item,object) and returns a promise
         assert(typeof promfn === 'function', 'series(obj,promfn,delay) error: promfn is not a function!');
         delay = parseInt(delay);
         let p = Promise.resolve();
         const nv = [],
-            f = delay > 0 ? (k) => p = p.then(() => promfn(k).then(res => this.wait(delay, nv.push(res)))) :
-            (k) => p = p.then(() => promfn(k));
-        for (let item in obj)
-            f(item, obj);
+            f =
+                delay > 0
+                    ? (k) => (p = p.then(() => promfn(k).then((res) => this.wait(delay, nv.push(res)))))
+                    : (k) => (p = p.then(() => promfn(k)));
+        for (const item in obj) f(item, obj);
         return p.then(() => nv);
     }
 
@@ -371,7 +427,9 @@ class MyAdapter {
         assert(typeof f === 'function', 'c2p (f) error: f is not a function!');
         return function () {
             const args = Array.prototype.slice.call(arguments);
-            return new Promise((res, rej) => (args.push((err, result) => (err && rej(err)) || res(result)), f.apply(this, args)));
+            return new Promise(
+                (res, rej) => (args.push((err, result) => (err && rej(err)) || res(result)), f.apply(this, args)),
+            );
         };
     }
 
@@ -379,44 +437,54 @@ class MyAdapter {
         assert(typeof f === 'function', 'c1p (f) error: f is not a function!');
         return function () {
             const args = Array.prototype.slice.call(arguments);
-            return new Promise(res => (args.push((result) => res(result)), f.apply(this, args)));
+            return new Promise((res) => (args.push((result) => res(result)), f.apply(this, args)));
         };
     }
 
-    static c1pe(f) { // one parameter != null = error
+    static c1pe(f) {
+        // one parameter != null = error
         assert(typeof f === 'function', 'c1pe (f) error: f is not a function!');
         return function () {
             const args = Array.prototype.slice.call(arguments);
-            return new Promise((res, rej) => (args.push((result) => !result ? res(result) : rej(result)), f.apply(this, args)));
+            return new Promise(
+                (res, rej) => (args.push((result) => (!result ? res(result) : rej(result))), f.apply(this, args)),
+            );
         };
     }
 
     static retry(nretry, fn, arg) {
         assert(typeof fn === 'function', 'retry (,fn,) error: fn is not a function!');
         nretry = parseInt(nretry);
-        return fn(arg).catch(err => nretry <= 0 ? this.reject(err) : this.retry(nretry - 1, fn, arg));
+        return fn(arg).catch((err) => (nretry <= 0 ? this.reject(err) : this.retry(nretry - 1, fn, arg)));
     }
 
-    static
-    while ( /** function */ fw, /** function */ fn, /** number */ time) {
-        assert(typeof fw === 'function' && typeof fn === 'function', 'retry (fw,fn,) error: fw or fn is not a function!');
+    static while(/** function */ fw, /** function */ fn, /** number */ time) {
+        assert(
+            typeof fw === 'function' && typeof fn === 'function',
+            'retry (fw,fn,) error: fw or fn is not a function!',
+        );
         time = parseInt(time) || 1;
-        return !fw() ? this.resolve(true) :
-            fn().then(() => true, () => true)
-            .then(() => this.wait(time))
-            .then(() => this.while(fw, fn, time));
+        return !fw()
+            ? this.resolve(true)
+            : fn()
+                .then(
+                    () => true,
+                    () => true,
+                )
+                .then(() => this.wait(time))
+                .then(() => this.while(fw, fn, time));
     }
 
-    static repeat( /** number */ nretry, /** function */ fn, arg) {
+    static repeat(/** number */ nretry, /** function */ fn, arg) {
         assert(typeof fn === 'function', 'repeat (,fn,) error: fn is not a function!');
         nretry = parseInt(nretry);
         return fn(arg)
-            .then(res => this.reject(res))
-            .catch(res => nretry <= 0 ? this.resolve(res) : this.repeat(nretry - 1, fn, arg));
+            .then((res) => this.reject(res))
+            .catch((res) => (nretry <= 0 ? this.resolve(res) : this.repeat(nretry - 1, fn, arg)));
     }
 
     static exec(command) {
-        assert(this.T(command,""), 'exec (fn) error: fn is not a string!');
+        assert(this.T(command, ''), 'exec (fn) error: fn is not a string!');
         const istest = command.startsWith('!');
         return new Promise((resolve, reject) => {
             exec(istest ? command.slice(1) : command, (error, stdout, stderr) => {
@@ -431,35 +499,33 @@ class MyAdapter {
 
     static url(turl, opt) {
         //        this.D(`mup start: ${this.O(turl)}: ${this.O(opt)}`);
-        if (this.T(turl) === 'string')
-            turl = url.parse(turl.trim(), true);
+        if (this.T(turl) === 'string') turl = url.parse(turl.trim(), true);
         if (this.T(opt) === 'object') {
             opt = this.clone(opt);
-            if (!turl || !(turl instanceof url.Url) )
-                turl = new url.Url(opt.url);
-            for (var i of Object.keys(opt))
-                if (opt.hasOwnProperty(i) && i !== 'url') turl[i] = opt[i];
+            if (!turl || !(turl instanceof url.Url)) turl = new url.Url(opt.url);
+            // eslint-disable-next-line no-prototype-builtins
+            for (const i of Object.keys(opt)) if (opt.hasOwnProperty(i) && i !== 'url') turl[i] = opt[i];
         }
         //        this.D(`mup ret: ${this.O(turl)}`);
         return turl;
     }
 
     static request(opt, value, transform) {
-        if (this.T(opt) === 'string')
-            opt = this.url(opt.trim());
-        if (!(opt instanceof url.Url)) { 
-            if (this.T(opt) !== 'object' || !opt.hasOwnProperty('url')) 
+        if (this.T(opt) === 'string') opt = this.url(opt.trim());
+        if (!(opt instanceof url.Url)) {
+            // eslint-disable-next-line no-prototype-builtins
+            if (this.T(opt) !== 'object' || !opt.hasOwnProperty('url'))
                 return Promise.reject(this.W(`Invalid opt or Url for request: ${this.O(opt)}`));
-            opt = this.url(opt.url,opt);
-        }            
+            opt = this.url(opt.url, opt);
+        }
         if (opt.json)
             if (opt.headers) opt.headers.Accept = 'application/json';
-            else opt.headers = {
-                Accept: 'application/json'
-            };
-        if (!opt.protocol)
-            opt.protocol = 'http:';
-        let fun = opt.protocol.startsWith('https') ? https.request : http.request;
+            else
+                opt.headers = {
+                    Accept: 'application/json',
+                };
+        if (!opt.protocol) opt.protocol = 'http:';
+        const fun = opt.protocol.startsWith('https') ? https.request : http.request;
         //                this.D(`opt: ${this.O(opt)}`);
         return new Promise((resolve, reject) => {
             let data = new Buffer(''),
@@ -469,13 +535,18 @@ class MyAdapter {
                 //                MyAdapter.D(`status: ${MyAdapter.O(res.statusCode)}/${http.STATUS_CODES[res.statusCode]}`);
                 res.setEncoding(opt.encoding ? opt.encoding : 'utf8');
                 if (MyAdapter.T(opt.status) === 'array' && opt.status.indexOf(res.statusCode) < 0)
-                    return reject(MyAdapter.D(`request for ${url.format(opt)} had status ${res.statusCode}/${http.STATUS_CODES[res.statusCode]} other than supported ${opt.status}`));
-                res.on('data', chunk => data += chunk)
+                    return reject(
+                        MyAdapter.D(
+                            `request for ${url.format(opt)} had status ${res.statusCode}/${
+                                http.STATUS_CODES[res.statusCode]
+                            } other than supported ${opt.status}`,
+                        ),
+                    );
+                res.on('data', (chunk) => (data += chunk))
                     .on('end', () => {
                         res.removeAllListeners();
                         req.removeAllListeners();
-                        if (MyAdapter.T(transform) === 'function')
-                            data = transform(data);
+                        if (MyAdapter.T(transform) === 'function') data = transform(data);
                         if (opt.json) {
                             try {
                                 return resolve(JSON.parse(data));
@@ -489,8 +560,7 @@ class MyAdapter {
             });
 
             function err(e, msg) {
-                if (!msg)
-                    msg = e;
+                if (!msg) msg = e;
                 if (res) res.removeAllListeners();
                 //                req && req.removeAllListeners();
                 if (req && !req.aborted) req.abort();
@@ -499,19 +569,22 @@ class MyAdapter {
                 return reject(msg);
             }
 
-            if (opt.timeout)
-                req.setTimeout(opt.timeout, () => err('request timeout Error: ' + opt.timeout + 'ms'));
-            req.on('error', (e) => err('request Error: ' + MyAdapter.O(e)))
-                .on('aborted', (e) => err('request aborted: ' + MyAdapter.O(e)));
+            if (opt.timeout) req.setTimeout(opt.timeout, () => err('request timeout Error: ' + opt.timeout + 'ms'));
+            req.on('error', (e) => err('request Error: ' + MyAdapter.O(e))).on('aborted', (e) =>
+                err('request aborted: ' + MyAdapter.O(e)),
+            );
             // write data to request body
             return req.end(value, opt.encoding ? opt.encoding : 'utf8');
         });
     }
 
-    static get(url, retry) { // get a web page either with http or https and return a promise for the data, could be done also with request but request is now an external package and http/https are part of nodejs.
-        const fun = typeof url === 'string' && url.trim().toLowerCase().startsWith('https') ||
-            url.protocol === 'https' ? https.get : http.get;
-        return (new Promise((resolve, reject) => {
+    static get(url, retry) {
+        // get a web page either with http or https and return a promise for the data, could be done also with request but request is now an external package and http/https are part of nodejs.
+        const fun =
+            (typeof url === 'string' && url.trim().toLowerCase().startsWith('https')) || url.protocol === 'https'
+                ? https.get
+                : http.get;
+        return new Promise((resolve, reject) => {
             fun(url, (res) => {
                 if (res.statusCode !== 200) {
                     const error = new Error(`Request Failed. Status Code: ${res.statusCode}`);
@@ -520,22 +593,21 @@ class MyAdapter {
                 }
                 res.setEncoding('utf8');
                 let rawData = '';
-                res.on('data', (chunk) => rawData += chunk);
+                res.on('data', (chunk) => (rawData += chunk));
                 res.on('end', () => resolve(rawData));
             }).on('error', (e) => reject(e));
-        })).catch(err => !retry ? this.reject(err) : this.wait(100, retry - 1).then(a => this.get(url, a)));
+        }).catch((err) => (!retry ? this.reject(err) : this.wait(100, retry - 1).then((a) => this.get(url, a))));
     }
 
     static equal(a, b) {
         /*jshint -W116 */
         if (a == b)
-        /*jshint +W116 */
-        return true;
-        let ta = this.T(a),
+            /*jshint +W116 */
+            return true;
+        const ta = this.T(a),
             tb = this.T(b);
         if (ta === tb) {
-            if (ta === 'array' || ta === 'function' || ta === 'object')
-                return JSON.stringify(a) === JSON.stringify(b);
+            if (ta === 'array' || ta === 'function' || ta === 'object') return JSON.stringify(a) === JSON.stringify(b);
         } else if (ta === 'string' && (tb === 'array' || tb === 'function' || tb === 'object') && a === this.O(b))
             return true;
         return false;
@@ -547,9 +619,14 @@ class MyAdapter {
         always = always === undefined ? false : !!always;
         ack = ack === undefined ? true : !!ack;
         return this.getState(id)
-            .then(st => st && !always && this.equal(st.val, value) && st.ack === ack ? this.resolve() :
-                this.setState(this.D(`Change ${id} to ${this.O(value)} with ack: ${ack}`, id), value, ack))
-            .catch(err => this.W(`Error in MyAdapter.setState(${id},${value},${ack}): ${err}`, this.setState(id, value, ack)));
+            .then((st) =>
+                st && !always && this.equal(st.val, value) && st.ack === ack
+                    ? this.resolve()
+                    : this.setState(this.D(`Change ${id} to ${this.O(value)} with ack: ${ack}`, id), value, ack),
+            )
+            .catch((err) =>
+                this.W(`Error in MyAdapter.setState(${id},${value},${ack}): ${err}`, this.setState(id, value, ack)),
+            );
     }
 
     static makeState(ido, value, ack, always) {
@@ -557,14 +634,15 @@ class MyAdapter {
         ack = ack === undefined || !!ack;
         let id = ido;
         if (typeof id === 'string')
-            ido = id.endsWith('Percent') ? {
-                unit: "%"
-            } : {};
+            ido = id.endsWith('Percent')
+                ? {
+                    unit: '%',
+                }
+                : {};
         else if (typeof id.id === 'string') {
             id = id.id;
         } else return this.reject(this.W(`Invalid makeState id: ${this.O(id)}`));
-        if (this.states[id])
-            return this.changeState(id, value, ack, always);
+        if (this.states[id]) return this.changeState(id, value, ack, always);
         //    this.D(`Make State ${id} and set value to:${this.O(value)} ack:${ack}`); ///TC
         const st = {
             common: {
@@ -573,25 +651,23 @@ class MyAdapter {
                 write: false,
                 state: 'state',
                 role: 'value',
-                type: typeof value
+                type: typeof value,
             },
             type: 'state',
-            _id: id
+            _id: id,
         };
-        for (let i in ido) {
+        for (const i in ido) {
             if (i === 'native') {
                 st.native = st.native || {};
-                for (let j in ido[i])
-                    st.native[j] = ido[i][j];
+                for (const j in ido[i]) st.native[j] = ido[i][j];
             } else if (i !== 'id' && i !== 'val') st.common[i] = ido[i];
         }
-        if (st.common.write)
-            st.common.role = st.common.role.replace(/^value/, 'level');
+        if (st.common.write) st.common.role = st.common.role.replace(/^value/, 'level');
         //    this.I(`will create state:${id} with ${this.O(st)}`);
         return this.extendObject(id, st, null)
-            .then(x => this.states[id] = x)
-            .then(() => st.common.state === 'state' ? this.changeState(id, value, ack, always) : true)
-            .catch(err => this.D(`MS ${this.O(err)}`, id));
+            .then((x) => (this.states[id] = x))
+            .then(() => (st.common.state === 'state' ? this.changeState(id, value, ack, always) : true))
+            .catch((err) => this.D(`MS ${this.O(err)}`, id));
     }
 }
 

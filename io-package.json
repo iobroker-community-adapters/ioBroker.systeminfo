@@ -2,20 +2,6 @@
     "common": {
         "name": "systeminfo",
         "version": "0.3.0",
-        "title": "Systeminfo Adapter to get data from systems",
-        "titleLang": {
-            "en": "System Info",
-            "de": "System Info",
-            "ru": "System Info",
-            "pt": "System Info",
-            "nl": "System Info",
-            "fr": "System Info",
-            "it": "System Info",
-            "es": "System Info",
-            "pl": "System Info",
-            "uk": "System Info",
-            "zh-cn": "System Info"
-        },
         "news": {
             "0.3.0": {
                 "en": "Added save and load of configuration",
@@ -30,272 +16,370 @@
                 "de": "Adapter verarbeitet hauptsächlich Linux-Systeminformation"
             }
         },
-        "desc": {
-            "en": "Adapter get (or set) data from systems or the web",
-            "de": "Adapter kann Daten vom System oder vom Web lesen"
+        "title": "Systeminfo Adapter to get data from systems",
+        "titleLang": {
+            "en": "System Info",
+            "de": "System Info",
+            "ru": "System Info",
+            "pt": "System Info",
+            "nl": "System Info",
+            "fr": "System Info",
+            "it": "System Info",
+            "es": "System Info",
+            "pl": "System Info",
+            "uk": "System Info",
+            "zh-cn": "System Info"
         },
+        "desc": {
+            "en": "Adapter to get (or set) data from systems or the web",
+            "de": "Adapter zum Lesen (oder Schreiben) von Daten von Systemen oder aus dem Web",
+            "ru": "Адаптер, чтобы получить (или установить) данные из систем или веб",
+            "pt": "Adaptador para obter (ou definir) dados de sistemas ou web",
+            "nl": "Vertaling:",
+            "fr": "Adaptateur pour obtenir (ou définir) des données de systèmes ou du web",
+            "it": "Adattatore per ottenere (o impostare) i dati dai sistemi o dal web",
+            "es": "Adaptador para obtener (o establecer) datos de sistemas o la web",
+            "pl": "Adapter to get (lub set) data from systems or web pages (ang.)",
+            "uk": "Перехідник для отримання (або встановлення) даних з систем або веб",
+            "zh-cn": "获取(或)系统或网络的数据"
+        },
+        "authors": ["ioBroker community, mcm1957 <mcm57@gmx.at>"],
         "license": "MIT",
         "platform": "Javascript/Node.js",
         "mode": "daemon",
         "icon": "systeminfo.png",
-        "materialize": true,
         "enabled": true,
         "messagebox": false,
         "subscribe": "messagebox_",
-        "extIcon": "https://raw.githubusercontent.com/frankjoke/ioBroker.systeminfo/master/admin/systeminfo.png",
-        "keywords": [
-            "Systeminfo",
-            "System",
-            "Web",
-            "Files",
-            "JSON",
-            "HTTP",
-            "XML"
-        ],
-        "readme": "https://github.com/frankjoke/ioBroker.systeminfo/blob/master/README.md",
+        "extIcon": "https://raw.githubusercontent.com/iobroker-community-adapters/ioBroker.systeminfo/master/admin/systeminfo.png",
+        "keywords": ["Systeminfo", "System", "Web", "Files", "JSON", "HTTP", "XML"],
+        "readme": "https://github.com/iobroker-community-adapters/ioBroker.systeminfo/blob/master/README.md",
         "loglevel": "info",
         "type": "misc-data",
-        "authors": [
-            "Frank Joke <frankjoke@hotmail.com>"
+        "compact": false,
+        "connectionType": "local",
+        "dataSource": "poll",
+        "materialize": false,
+        "dependencies": [
+            {
+                "js-controller": ">=3.3.22"
+            }
+        ],
+        "messages": [
+            {
+                "condition": {
+                    "operand": "and",
+                    "rules": ["oldVersion<1.0.0", "newVersion>=1.0.0"]
+                },
+                "title": {
+                    "en": "Important notice!",
+                    "de": "Wichtiger Hinweis!",
+                    "ru": "Важное замечание!",
+                    "pt": "Notícia importante!",
+                    "nl": "Belangrijke mededeling!",
+                    "fr": "Avis important!",
+                    "it": "Avviso IMPORTANTE!",
+                    "es": "Noticia importante!",
+                    "pl": "Ważna uwaga!",
+                    "zh-cn": "重要通知!",
+                    "uk": "Важливе повідомлення!"
+                },
+                "text": {
+                    "en": "This release consolidates current github level of code and implements changes to support upcoming js-controller 5.x. As release 0.3.1 has not been stored at github, there are chances that changes delivered with 0.3.1 got lost. Please create a issue at ioBroker.systeminfo repository if you detect such a case. And please ensure that you have a working backup before installing this release.",
+                    "de": "Diese Veröffentlichung konsolidiert den aktuellen Codestand auf Github und implementiert Änderungen zur Unterstützung des kommenden js-controllers 5.x. Da bei Github kein Release 0.3.1 gespeichert wurde, besteht die Gefahr, dass mit 0.3.1 gelieferte Änderungen verloren gegangen sind. Bitte erstellen Sie ein Issue im ioBroker.systeminfo repository, wenn Sie einen solchen Fall erkennen. Und bitte stellen Sie sicher, dass Sie ein funktionierendes Backup haben, bevor Sie diese Release installieren.",
+                    "ru": "Этот выпуск консолидирует текущий уровень кода github и внедряет изменения в поддержку предстоящего js-controller 5.x Как релиз 0.3.1 не хранится в github, есть шансы, которые изменения, доставленные с 0.3.1 утрачены. Пожалуйста, создайте проблему на ioBroker. repository systeminfo если вы обнаружите такой случай. И, пожалуйста, убедитесь, что у вас есть работая резервное копирование перед установкой этого релиза.",
+                    "pt": "Esta versão consolida o nível do github atual de código e implementa alterações para suportar js-controller 5.x Como a versão 0.3.1 não foi armazenada no github, há chances de que as mudanças entregues com 0.3.1 se perderam. Por favor crie um problema no ioBroker. repositório systeminfo se você detectar tal caso. E por favor certifique-se de que você tem um backup de trabalho antes de instalar esta versão.",
+                    "nl": "Deze vrijlating consolideert de huidige github niveau van code en implementaties veranderen om Js-controller 5 te ondersteunen. Terwijl 0.3.1 niet opgeslagen is bij github, zijn er kansen dat veranderingen met 0.3.1 verdwaald zijn. Maak alsjeblieft een probleem bij ioBroker. Systeemherbergage als je zo'n zaak ontdekt. En zorg dat je een werkende back-up hebt voor je deze vrijlating installeert.",
+                    "fr": "Cette version consolide le niveau de github actuel de code et met en œuvre des changements pour soutenir js-controller 5.x Comme la version 0.3.1 n'a pas été stockée à github, il y a des chances que les changements livrés avec 0.3.1 se soient perdus. S'il vous plaît créer un problème à ioBroker. dépôt systeminfo si vous détectez un tel cas. Et s'il vous plaît assurez-vous que vous avez une sauvegarde de travail avant d'installer cette version.",
+                    "it": "Questa versione consolida l'attuale livello github di codice e implementa le modifiche per supportare il prossimo js-controller 5.x Poiché il rilascio 0.3.1 non è stato memorizzato a github, ci sono possibilità che i cambiamenti consegnati con 0.3.1 si siano persi. Si prega di creare un problema a ioBroker. systeminfo repository se si rileva un caso del genere. E si prega di assicurarsi di avere un backup di lavoro prima di installare questa release.",
+                    "es": "Esta versión consolida el nivel actual de código github e implementa cambios para apoyar el próximo js-controller 5.x Como la liberación 0.3.1 no se ha almacenado en github, hay posibilidades de que los cambios entregados con 0.3.1 se hayan perdido. Por favor, cree un problema en ioBroker. sistemainfo repositorio si detecta tal caso. Y por favor asegúrese de tener una copia de seguridad de trabajo antes de instalar esta versión.",
+                    "pl": "Pozwoliło to na konsolidację aktualnego poziomu kodu i wdrożenie zmian w celu wspierania nadchodzącego kontrolera 5.x. W chwili premiery 0,3.1 nie było przechowywanych w github, istnieją przypadki, które zaginęły 0,3.1 osób. Proszę tworzyć na ioBroker. W przypadku wykrywania takiej sytuacji. Załóżmy, że będziecie pracować przed rozpoczęciem tego wydania.",
+                    "uk": "Цей реліз консолідує поточний рівень github і реалізує зміни для підтримки майбутніх js-controller 5.x Як випустити 0.3.1 не зберігається в github, є шанси, що зміни, доставлені з 0,3.1 втратили. Будь ласка, створіть питання в ioBroker. Якщо ви виявите такий випадок. І переконайтеся, що у вас є робоча резервна копія перед установкою цього релізу.",
+                    "zh-cn": "这一释放巩固了目前编码水平,并实施了改变,以支助即将到来的丛林。 由于释放的0.3.1尚未存放在廷布,因此有丧失了30.1处的改变。 请在ioBroker设立一个问题。 如果你发现这种情况,系统存放处。 并请确保你在安排这一释放之前能够工作。."
+                },
+                "link": "https://github.com/iobroker-community-adapters/ioBroker.systeminfo#changelog",
+                "level": "warn",
+                "linkText": {
+                    "en": "Changelog",
+                    "de": "Änderungsprotokoll",
+                    "ru": "Список изменений",
+                    "pt": "Registro de alterações",
+                    "nl": "Wijzigingslog",
+                    "fr": "Journal des modifications",
+                    "it": "Registro delle modifiche",
+                    "es": "registro de cambios",
+                    "pl": "Dziennik zmian",
+                    "zh-cn": "变更日志",
+                    "uk": "Журнал змін"
+                },
+                "buttons": ["agree", "cancel"]
+            }
         ]
     },
     "native": {
         "startup": "#\ngpio mode 1 output\n#rpi: echo none >/sys/class/leds/led0/trigger\necho none >/sys/class/leds/green_led/trigger",
-        "items": [{
-            "name": "System.Temperature",
-            "type": "file",
-            "source": "/sys/class/thermal/thermal_zone0/temp",
-            "regexp": "",
-            "conv": "number",
-            "role": "value.temperature|°C",
-            "write": "",
-            "sched": "*:/2"
-        }, {
-            "name": "-System.Memory_[used, free, available]",
-            "type": "exec",
-            "source": "free -k",
-            "regexp": "Mem\\:\\s+\\d+\\s+(\\d+)\\s+(\\d+)\\s+\\d+\\s+\\d+\\s+(\\d+)",
-            "conv": "@/1000",
-            "role": "number|MB",
-            "write": "",
-            "sched": "1 * * * * "
-        }, {
-            "name": "NAS.Space_[total, used, free]",
-            "type": "exec",
-            "source": "df -BK",
-            "regexp": "/lic\\s+(\\d+)K\\s+(\\d+)K\\s+(\\d+)/m",
-            "conv": "parseInt(@*1000/1024)/1000",
-            "role": "number|MB",
-            "write": "",
-            "sched": "1 * * * * "
-        }, {
-            "name": "GPIO.1",
-            "type": "exec",
-            "source": "gpio read 1",
-            "regexp": "",
-            "conv": "!parseInt(@)",
-            "role": "switch",
-            "write": "gpio write 1 @(@ ?  '0' : '1')",
-            "sched": "*/20 * * * * *"
-        }, {
-            "name": "System.Led_Green",
-            "type": "file",
-            "source": "/sys/class/leds/green_led/brightness",
-            "regexp": "",
-            "conv": "boolean",
-            "role": "switch",
-            "write": "@ ? '1' : '0' ",
-            "sched": "*/6:1"
-        }, {
-            "name": "System.Led_Red",
-            "type": "file",
-            "source": "/sys/class/leds/red_led/brightness",
-            "regexp": "",
-            "conv": "boolean",
-            "role": "switch",
-            "write": "@ ? '1' : '0'",
-            "sched": "*/6:1"
-        }, {
-            "name": "Currency.[currency/rate]",
-            "type": "web",
-            "source": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
-            "regexp": "Cube.Cube.Cube[?(@.currency=='USD' || @.currency=='GBP')]",
-            "conv": "xml",
-            "role": "number | €/?",
-            "write": "",
-            "sched": "19:10:10"
-        }, {
-            "name": "Currency.BTC_CNY",
-            "type": "web",
-            "source": "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=BTC&to_currency=CNY&apikey=demo",
-            "regexp": "[0][4]",
-            "conv": "json",
-            "role": "number | CNY",
-            "write": "",
-            "sched": "19:10:10"
-        }, {
-            "name": "HP_Photosmart_7520.[name/value]",
-            "type": "web",
-            "source": "http://HPC56C03-PS7520/DevMgmt/ConsumableConfigDyn.xml",
-            "regexp": "ConsumableInfo[?(@.Capacity)][(@.res = {name:@.ConsumableLabelCode, value: @.ConsumablePercentageLevelRemaining + ', '+@.ConsumableIcon.Shape+', '+@.Installation.Date+', '+@.ConsumableSelectibilityNumber},'res')]",
-            "conv": "xml",
-            "role": "json",
-            "write": "",
-            "sched": "*/6:3"
-        }, {
-            "name": "UWZ",
-            "type": "web",
-            "source": "http://feed.alertspro.meteogroup.com/AlertsPro/AlertsProPollService.php?method=getWarning&language=de&areaID=UWZAT02402",
-            "regexp": "..translationsShortText.DE",
-            "conv": "json",
-            "role": "json",
-            "write": "",
-            "sched": "*:1"
-        }, {
-            "name": "-TestSystem.processes.[command/pcpu]",
-            "type": "info",
-            "source": "processes",
-            "regexp": "list[?(@.user == 'pi')]",
-            "conv": "",
-            "role": "",
-            "write": "",
-            "sched": "*:2"
-        }, {
-            "name": "-XS2.[name/value]",
-            "type": "web",
-            "source": "http://xs1/control.html'",
-            "regexp": "{\"l[?(@.value  !== null )]\": {\"l[tr]\": { '![@.children()]':0, name: {_eq:1}, value: {_eq:2, _conv:\"parseInt(@.slice(0,-1))\"}}, _filter: ($) => $[0].childNodes.length==3}}",
-            "conv": "html",
-            "role": "",
-            "write": "",
-            "sched": "`:*:*/20"
-        }, {
-            "name": "MSFT.[*]",
-            "type": "web",
-            "source": "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=MSFT&apikey=demo",
-            "regexp": "[1:2][0:1]",
-            "conv": "json",
-            "role": "number",
-            "write": "",
-            "sched": "19:10:10"
-        }, {
-            "name": "System.[Mem_used, Mem_free, Swap_used]",
-            "type": "info",
-            "source": "mem",
-            "regexp": "[used,free,swapused]",
-            "conv": "parseInt(@*(1000/1024/1024))/1000",
-            "role": "number|MB",
-            "write": "",
-            "sched": "*:/1"
-        }, {
-            "name": "System.Software.[*]",
-            "type": "info",
-            "source": "osInfo",
-            "regexp": "",
-            "conv": "",
-            "role": "string",
-            "write": "",
-            "sched": "*/3:58"
-        }, {
-            "name": "System.Software.[*]",
-            "type": "info",
-            "source": "versions",
-            "regexp": "",
-            "conv": "",
-            "role": "string",
-            "write": "",
-            "sched": "*/3:58"
-        }, {
-            "name": "System.FileSystem.[fs/use]",
-            "type": "info",
-            "source": "fsSize",
-            "regexp": "*",
-            "conv": "",
-            "role": "number|%",
-            "write": "",
-            "sched": "*/3:58"
-        }, {
-            "name": "System.FileSystem.IO_[Read,Write]",
-            "type": "info",
-            "source": "fsStats",
-            "regexp": "[rx,wx]",
-            "conv": "parseInt(@*(1000/1024/1024))/1000",
-            "role": "number|MB",
-            "write": "",
-            "sched": "*:/1"
-        }, {
-            "name": "System.Network.[iface/]",
-            "type": "info",
-            "source": "networkInterfaces",
-            "regexp": "*",
-            "conv": "",
-            "role": "",
-            "write": "",
-            "sched": "*/3:58"
-        }, {
-            "name": "System.Network.Connections.[name/value]",
-            "type": "info",
-            "source": "networkConnections",
-            "regexp": "[*][!(@.localaddress == @.peeraddress ? null :  {name:`${@.protocol}:${@.localaddress.replace(/\\./g,'_')}:${@.localport}`, value:`${@.state}:${@.peeraddress}:${@.peerport}`})]",
-            "conv": "",
-            "role": "string",
-            "write": "",
-            "sched": "*:/1"
-        }, {
-            "name": "System.Network.MB_[Received,Sent]",
-            "type": "info",
-            "source": "networkStats",
-            "regexp": "[rx,tx]",
-            "conv": "parseInt(@*(1000/1024/1024))/1000",
-            "role": "number|MB",
-            "write": "",
-            "sched": "*:/1"
-        }, {
-            "name": "System.Network.FritzBox.[*]",
-            "type": "info",
-            "source": "inetChecksite(\"http://fritz.box\")",
-            "regexp": "",
-            "conv": "",
-            "role": "",
-            "write": "",
-            "sched": "*:/1"
-        }, {
-            "name": "System.Network.Latency",
-            "type": "info",
-            "source": "inetLatency",
-            "regexp": "",
-            "conv": "",
-            "role": "number|ms",
-            "write": "",
-            "sched": "*:/1"
-        }, {
-            "name": "System.Load.[Load,User,System,Idle]",
-            "type": "info",
-            "source": "currentLoad",
-            "regexp": "[currentload, currentload_user, currentload_system, currentload_idle]",
-            "conv": "parseInt(@*1000)/1000",
-            "role": "number|ms",
-            "write": "",
-            "sched": "*:*:/10"
-        }, {
-            "name": "TankerKönig.[name/diesel]",
-            "type": "web",
-            "source": "https://creativecommons.tankerkoenig.de/json/list.php?lat=52.521&lng=13.438&rad=1.5&sort=dist&type=all&apikey=00000000-0000-0000-0000-000000000002",
-            "regexp": "stations[?(@.name += ' ' + @.street, @.diesel)]",
-            "conv": "json",
-            "role": "number | €",
-            "write": "",
-            "sched": "/3:2"
-        }, {
-            "name": "TVProgramm.[name/text]",
-            "type": "web",
-            "source": "http://www.tvmovie.de/tv/programm-jetzt",
-            "regexp": "{\"[0][*][!(({name: @.name.split(' ')[0], text: @.name.split(' ').slice(@.name.slice(' ').indexOf('Seit')).join(' ')}))]\":{'[section[class=item]]': {'name[span[class=h2]]':0}}}",
-            "conv": "html",
-            "role": "",
-            "write": "",
-            "sched": "/1:0"
-        }]
+        "items": [
+            {
+                "name": "System.Temperature",
+                "type": "file",
+                "source": "/sys/class/thermal/thermal_zone0/temp",
+                "regexp": "",
+                "conv": "number",
+                "role": "value.temperature|°C",
+                "write": "",
+                "sched": "*:/2"
+            },
+            {
+                "name": "-System.Memory_[used, free, available]",
+                "type": "exec",
+                "source": "free -k",
+                "regexp": "Mem\\:\\s+\\d+\\s+(\\d+)\\s+(\\d+)\\s+\\d+\\s+\\d+\\s+(\\d+)",
+                "conv": "@/1000",
+                "role": "number|MB",
+                "write": "",
+                "sched": "1 * * * * "
+            },
+            {
+                "name": "NAS.Space_[total, used, free]",
+                "type": "exec",
+                "source": "df -BK",
+                "regexp": "/lic\\s+(\\d+)K\\s+(\\d+)K\\s+(\\d+)/m",
+                "conv": "parseInt(@*1000/1024)/1000",
+                "role": "number|MB",
+                "write": "",
+                "sched": "1 * * * * "
+            },
+            {
+                "name": "GPIO.1",
+                "type": "exec",
+                "source": "gpio read 1",
+                "regexp": "",
+                "conv": "!parseInt(@)",
+                "role": "switch",
+                "write": "gpio write 1 @(@ ?  '0' : '1')",
+                "sched": "*/20 * * * * *"
+            },
+            {
+                "name": "System.Led_Green",
+                "type": "file",
+                "source": "/sys/class/leds/green_led/brightness",
+                "regexp": "",
+                "conv": "boolean",
+                "role": "switch",
+                "write": "@ ? '1' : '0' ",
+                "sched": "*/6:1"
+            },
+            {
+                "name": "System.Led_Red",
+                "type": "file",
+                "source": "/sys/class/leds/red_led/brightness",
+                "regexp": "",
+                "conv": "boolean",
+                "role": "switch",
+                "write": "@ ? '1' : '0'",
+                "sched": "*/6:1"
+            },
+            {
+                "name": "Currency.[currency/rate]",
+                "type": "web",
+                "source": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
+                "regexp": "Cube.Cube.Cube[?(@.currency=='USD' || @.currency=='GBP')]",
+                "conv": "xml",
+                "role": "number | €/?",
+                "write": "",
+                "sched": "19:10:10"
+            },
+            {
+                "name": "Currency.BTC_CNY",
+                "type": "web",
+                "source": "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=BTC&to_currency=CNY&apikey=demo",
+                "regexp": "[0][4]",
+                "conv": "json",
+                "role": "number | CNY",
+                "write": "",
+                "sched": "19:10:10"
+            },
+            {
+                "name": "HP_Photosmart_7520.[name/value]",
+                "type": "web",
+                "source": "http://HPC56C03-PS7520/DevMgmt/ConsumableConfigDyn.xml",
+                "regexp": "ConsumableInfo[?(@.Capacity)][(@.res = {name:@.ConsumableLabelCode, value: @.ConsumablePercentageLevelRemaining + ', '+@.ConsumableIcon.Shape+', '+@.Installation.Date+', '+@.ConsumableSelectibilityNumber},'res')]",
+                "conv": "xml",
+                "role": "json",
+                "write": "",
+                "sched": "*/6:3"
+            },
+            {
+                "name": "UWZ",
+                "type": "web",
+                "source": "http://feed.alertspro.meteogroup.com/AlertsPro/AlertsProPollService.php?method=getWarning&language=de&areaID=UWZAT02402",
+                "regexp": "..translationsShortText.DE",
+                "conv": "json",
+                "role": "json",
+                "write": "",
+                "sched": "*:1"
+            },
+            {
+                "name": "-TestSystem.processes.[command/pcpu]",
+                "type": "info",
+                "source": "processes",
+                "regexp": "list[?(@.user == 'pi')]",
+                "conv": "",
+                "role": "",
+                "write": "",
+                "sched": "*:2"
+            },
+            {
+                "name": "-XS2.[name/value]",
+                "type": "web",
+                "source": "http://xs1/control.html'",
+                "regexp": "{\"l[?(@.value  !== null )]\": {\"l[tr]\": { '![@.children()]':0, name: {_eq:1}, value: {_eq:2, _conv:\"parseInt(@.slice(0,-1))\"}}, _filter: ($) => $[0].childNodes.length==3}}",
+                "conv": "html",
+                "role": "",
+                "write": "",
+                "sched": "`:*:*/20"
+            },
+            {
+                "name": "MSFT.[*]",
+                "type": "web",
+                "source": "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=MSFT&apikey=demo",
+                "regexp": "[1:2][0:1]",
+                "conv": "json",
+                "role": "number",
+                "write": "",
+                "sched": "19:10:10"
+            },
+            {
+                "name": "System.[Mem_used, Mem_free, Swap_used]",
+                "type": "info",
+                "source": "mem",
+                "regexp": "[used,free,swapused]",
+                "conv": "parseInt(@*(1000/1024/1024))/1000",
+                "role": "number|MB",
+                "write": "",
+                "sched": "*:/1"
+            },
+            {
+                "name": "System.Software.[*]",
+                "type": "info",
+                "source": "osInfo",
+                "regexp": "",
+                "conv": "",
+                "role": "string",
+                "write": "",
+                "sched": "*/3:58"
+            },
+            {
+                "name": "System.Software.[*]",
+                "type": "info",
+                "source": "versions",
+                "regexp": "",
+                "conv": "",
+                "role": "string",
+                "write": "",
+                "sched": "*/3:58"
+            },
+            {
+                "name": "System.FileSystem.[fs/use]",
+                "type": "info",
+                "source": "fsSize",
+                "regexp": "*",
+                "conv": "",
+                "role": "number|%",
+                "write": "",
+                "sched": "*/3:58"
+            },
+            {
+                "name": "System.FileSystem.IO_[Read,Write]",
+                "type": "info",
+                "source": "fsStats",
+                "regexp": "[rx,wx]",
+                "conv": "parseInt(@*(1000/1024/1024))/1000",
+                "role": "number|MB",
+                "write": "",
+                "sched": "*:/1"
+            },
+            {
+                "name": "System.Network.[iface/]",
+                "type": "info",
+                "source": "networkInterfaces",
+                "regexp": "*",
+                "conv": "",
+                "role": "",
+                "write": "",
+                "sched": "*/3:58"
+            },
+            {
+                "name": "System.Network.Connections.[name/value]",
+                "type": "info",
+                "source": "networkConnections",
+                "regexp": "[*][!(@.localaddress == @.peeraddress ? null :  {name:`${@.protocol}:${@.localaddress.replace(/\\./g,'_')}:${@.localport}`, value:`${@.state}:${@.peeraddress}:${@.peerport}`})]",
+                "conv": "",
+                "role": "string",
+                "write": "",
+                "sched": "*:/1"
+            },
+            {
+                "name": "System.Network.MB_[Received,Sent]",
+                "type": "info",
+                "source": "networkStats",
+                "regexp": "[rx,tx]",
+                "conv": "parseInt(@*(1000/1024/1024))/1000",
+                "role": "number|MB",
+                "write": "",
+                "sched": "*:/1"
+            },
+            {
+                "name": "System.Network.FritzBox.[*]",
+                "type": "info",
+                "source": "inetChecksite(\"http://fritz.box\")",
+                "regexp": "",
+                "conv": "",
+                "role": "",
+                "write": "",
+                "sched": "*:/1"
+            },
+            {
+                "name": "System.Network.Latency",
+                "type": "info",
+                "source": "inetLatency",
+                "regexp": "",
+                "conv": "",
+                "role": "number|ms",
+                "write": "",
+                "sched": "*:/1"
+            },
+            {
+                "name": "System.Load.[Load,User,System,Idle]",
+                "type": "info",
+                "source": "currentLoad",
+                "regexp": "[currentload, currentload_user, currentload_system, currentload_idle]",
+                "conv": "parseInt(@*1000)/1000",
+                "role": "number|ms",
+                "write": "",
+                "sched": "*:*:/10"
+            },
+            {
+                "name": "TankerKönig.[name/diesel]",
+                "type": "web",
+                "source": "https://creativecommons.tankerkoenig.de/json/list.php?lat=52.521&lng=13.438&rad=1.5&sort=dist&type=all&apikey=00000000-0000-0000-0000-000000000002",
+                "regexp": "stations[?(@.name += ' ' + @.street, @.diesel)]",
+                "conv": "json",
+                "role": "number | €",
+                "write": "",
+                "sched": "/3:2"
+            },
+            {
+                "name": "TVProgramm.[name/text]",
+                "type": "web",
+                "source": "http://www.tvmovie.de/tv/programm-jetzt",
+                "regexp": "{\"[0][*][!(({name: @.name.split(' ')[0], text: @.name.split(' ').slice(@.name.slice(' ').indexOf('Seit')).join(' ')}))]\":{'[section[class=item]]': {'name[span[class=h2]]':0}}}",
+                "conv": "html",
+                "role": "",
+                "write": "",
+                "sched": "/1:0"
+            }
+        ]
     },
     "objects": [],
     "config": {
