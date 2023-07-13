@@ -101,14 +101,6 @@ It handles text, HTML, json and XML data types wizh special query mechanisms.
             -   `?s`, `?m`, `?h ` with ? being digits >0 would run the request every ?seconds, monites or hours, you cannot specify multiple items at once!
         -   Schedules are grouped to the same time, if you omit the seconds like in the first example above it will be assigned to some number trying to avoid same second for all items. This is done not to run too many commands at the same time.
 
-## Known-Issues
-
--   Beta test, no writes to web pages implemented
-
-## Important/Wichtig
-
--   Requires node >=v4.5
-
 ## Changelog
 
 <!--
@@ -120,6 +112,7 @@ It handles text, HTML, json and XML data types wizh special query mechanisms.
 
 -   (mcm1957) changed: Testing has been changed to support node 16, 18 and 20
 -   (mcm1957) changed: Dependencies have been updated
+-   (mcm1957) changed: Code has been adapted to meet js-controller 5.x requirements
 
 ### 0.3.0
 
@@ -133,11 +126,6 @@ It handles text, HTML, json and XML data types wizh special query mechanisms.
 ### 0.2.0
 
 -   First public beta includes jsonParse and WebQuery parse
-
-### Todo for later revisions
-
--   Allow import/export of configs to easily add new functions
--   Allow access of web pages with authentication and also writing/postng web content
 
 ## License
 
