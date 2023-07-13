@@ -107,8 +107,7 @@ It handles text, HTML, json and XML data types wizh special query mechanisms.
     Placeholder for the next version (at the beginning of the line):
     ### **WORK IN PROGRESS**
 -->
-
-### **WORK IN PROGRESS**
+### 1.0.0 (2023-07-13)
 
 -   (mcm1957) changed: Testing has been changed to support node 16, 18 and 20
 -   (mcm1957) changed: Dependencies have been updated
