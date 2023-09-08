@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "systeminfo",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "news": {
+      "1.1.0": {
+        "en": "Adapter requires node 16 or newer now\nDependencies have been updated",
+        "de": "Adapter benötigt nun Node 16 oder neuer\nAbhängigkeiten wurden aktualisiert",
+        "ru": "Адаптер требует узел 16 или новее сейчас\nВ зависимости были обновлены",
+        "pt": "Adaptador requer nó 16 ou mais recente agora\nAs dependências foram atualizadas",
+        "nl": "Adapter vereist node 16 of Newer nu\nAfhankelijkheid",
+        "fr": "Adaptateur nécessite 16 ou plus maintenant\nLes dépendances ont été mises à jour",
+        "it": "Adattatore richiede nodo 16 o più nuovo ora\nLe dipendenze sono state aggiornate",
+        "es": "Adaptador requiere nodo 16 o más nuevo ahora\nSe han actualizado las dependencias",
+        "pl": "Adapter wymaga węzła 16 lub nowszego\nZależności zostały zaktualizowane",
+        "uk": "Адаптер вимагає вузла 16 або нового\nОновлено залежність",
+        "zh-cn": "现在不需要16个或新的人员。\n已更新了属地"
+      },
       "1.0.0": {
         "en": "changed: Testing has been changed to support node 16, 18 and 20\nchanged: Dependencies have been updated\nchanged: Code has been adapted to meet js-controller 5.x requirements",
         "de": "geändert: Testing wurde auf Node 16, 18 und 20 geändert\ngeändert: Abhängigkeiten wurden aktualisiert\ngeändert: Der Code wurde angepasst an js-controller 5.x Anforderungen",

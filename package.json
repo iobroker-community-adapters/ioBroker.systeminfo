@@ -1,6 +1,6 @@
 {
   "name": "iobroker.systeminfo",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "ioBroker (system)info Adapter",
   "author": "ioBroker community <mcm57@gmx.at>",
   "contributors": [
