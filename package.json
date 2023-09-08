@@ -20,7 +20,7 @@
     "url": "git+https://github.com/iobroker-community-adapters/ioBroker.systeminfo.git"
   },
   "engines": {
-    "node": ">=4.3.0"
+    "node": ">=16"
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.0.3",
