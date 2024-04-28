@@ -107,6 +107,10 @@ It handles text, HTML, json and XML data types wizh special query mechanisms.
     Placeholder for the next version (at the beginning of the line):
     ### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (mcm1957) Adapter requires node.js >= 18 and js-controller >= 5 now
+* (mcm1957) Dependencies have been updated
+
 ### 1.1.0 (2023-09-08)
 
 -   (mcm1957) Adapter requires node 16 or newer now
@@ -135,7 +139,7 @@ It handles text, HTML, json and XML data types wizh special query mechanisms.
 
 The MIT License (MIT)
 
-Copyright (c) 2023, ioBroker community, mcm1957 <mcm57@gmx.at>
+Copyright (c) 2023-2024 ioBroker Community Developers <iobroker-community-adapters@gmx.de>  
 Copyright (c) 2017-2019, frankjoke <frankjoke@hotmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

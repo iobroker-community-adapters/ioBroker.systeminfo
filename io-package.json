@@ -42,7 +42,6 @@
         "de": "Adapter verarbeitet hauptsächlich Linux-Systeminformation"
       }
     },
-    "title": "Systeminfo Adapter to get data from systems",
     "titleLang": {
       "en": "System Info",
       "de": "System Info",
@@ -72,7 +71,10 @@
     "authors": [
       "ioBroker community, mcm1957 <mcm57@gmx.at>"
     ],
-    "license": "MIT",
+    "licenseInformation": {
+      "license": "MIT",
+      "type": "free"
+    },
     "platform": "Javascript/Node.js",
     "mode": "daemon",
     "icon": "systeminfo.png",
@@ -91,6 +93,7 @@
     ],
     "readme": "https://github.com/iobroker-community-adapters/ioBroker.systeminfo/blob/master/README.md",
     "loglevel": "info",
+    "tier": 2,
     "type": "misc-data",
     "compact": false,
     "connectionType": "local",
@@ -98,7 +101,12 @@
     "materialize": false,
     "dependencies": [
       {
-        "js-controller": ">=3.3.22"
+        "js-controller": ">=5.0.19"
+      }
+    ],
+    "globalDependencies": [
+      {
+        "admin": ">=6.13.16"
       }
     ],
     "messages": [
