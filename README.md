@@ -107,7 +107,7 @@ It handles text, HTML, json and XML data types wizh special query mechanisms.
     Placeholder for the next version (at the beginning of the line):
     ### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 1.2.0 (2024-04-28)
 * (mcm1957) Adapter requires node.js >= 18 and js-controller >= 5 now
 * (mcm1957) Dependencies have been updated
 
@@ -130,10 +130,6 @@ It handles text, HTML, json and XML data types wizh special query mechanisms.
 
 -   First public beta includes jsonParse and WebQuery parse, jsonParse syntax mistake corrected for selectors
 -   New icon to separate it from info-Adapter
-
-### 0.2.0
-
--   First public beta includes jsonParse and WebQuery parse
 
 ## License
 
