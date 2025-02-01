@@ -23,7 +23,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@iobroker/adapter-core": "^3.1.6",
+    "@iobroker/adapter-core": "^3.2.3",
     "cheerio": "^1.0.0-rc.3",
     "node-schedule": "^2.1.1",
     "systeminformation": "^5.21.24",
