@@ -1,6 +1,6 @@
 /**
  *      iobroker MyAdapter class V1.2.1 from systeminfo
- *      (c) 2016- <frankjoke@hotmail.com>
+ *      (c) 2016- <frankjoke@hotmail.com> 
  *      MIT License
  */
 // jshint  node: true, esversion: 6, strict: true, undef: true, unused: true
