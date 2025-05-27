@@ -1,6 +1,6 @@
 /**
  *      iobroker MyAdapter class V1.2.1 from systeminfo
- *      (c) 2016- <frankjoke@hotmail.com>
+ *      (c) 2016- <frankjoke@hotmail.com> 
  *      MIT License
  */
 // jshint  node: true, esversion: 6, strict: true, undef: true, unused: true
@@ -60,12 +60,15 @@ class MyAdapter {
 
     static initAdapter() {
         states = {};
-        this.D(`Adapter ${this.ains} starting.`);
-        this.getObjectList = this.c2p(adapter.getObjectList);
-        this.getForeignState = this.c2p(adapter.getForeignState);
-        this.setForeignState = this.c2p(adapter.setForeignState);
-        this.getState = this.c2p(adapter.getState);
-        this.setState = this.c2p(adapter.setState);
+        this.getObjectList = adapter.getObjectListAsync ?
+            adapter.getObjectListAsync.bind(adapter) :
+            this.c2p(adapter.objects.getObjectList).bind(adapter.objects);
+        this.getForeignState = adapter.getForeignStateAsync.bind(adapter);
+        this.setForeignState = adapter.setForeignStateAsync.bind(adapter);
+        this.getState = adapter.getStateAsync.bind(adapter);
+        this.setState = adapter.setStateAsync.bind(adapter);
+        this.getStates = adapter.getStatesAsync.bind(adapter);
+
 
         return (
             !adapter.config.forceinit
@@ -145,11 +148,13 @@ class MyAdapter {
             this.c1pe(adapter.delState)(id, opt).catch((res) =>
                 res === 'Not exists' ? this.resolve() : this.reject(res),
             );
-        this.removeState = (id, opt) =>
-            this.delState(id, opt).then(() => this.delObject((delete this.states[id], id), opt));
+         this.removeState = async (id, opt) => {
+                await adapter.delStateAsync(id, opt).catch(this.nop);
+                await adapter.delObjectAsync((delete states[id], id), opt).catch(this.nop);
+            };     
         this.setObject = this.c2p(adapter.setObject);
         this.createState = this.c2p(adapter.createState);
-        this.extendObject = this.c2p(adapter.extendObject);
+        this.extendObject = adapter.extendObjectAsync.bind(adapter);
 
         adapter
             .on('message', (obj) => (obj ? this.processMessage(this.D(`received Message ${this.O(obj)}`, obj)) : true))
