@@ -41,18 +41,6 @@
         "pl": "zmieniono: Testy zostały zmienione na węzeł 16 i 20\nzmieniono: Zależności zostały zaktualizowane\nzmieniono: Kod został dostosowany do wymagań js-controller 5.x",
         "uk": "змінено: Тестування було змінено для підтримки вузлів 16, 18 та 20\nзмінено: Оновлено залежність\nзмінено: Код адаптовано до вимог js-controller 5.x",
         "zh-cn": "修改: 试验已改变,以支持第16、18和20号。\n修改: 已更新了属地\n修改: 已经修改了《守则》,以满足第5节要求。"
-      },
-      "0.3.0": {
-        "en": "Added save and load of configuration",
-        "de": "States können erzeugt werden welche ein/aus simulieren oder levels können"
-      },
-      "0.2.2": {
-        "en": "Public beta update, everything should work",
-        "de": "Public Beta Update, alles sollte funktionieren"
-      },
-      "0.0.1": {
-        "en": "Adapter handles normal system info mainly for Linux",
-        "de": "Adapter verarbeitet hauptsächlich Linux-Systeminformation"
       }
     },
     "titleLang": {
