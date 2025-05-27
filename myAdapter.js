@@ -30,11 +30,13 @@ let adapter,
 const slog = (adapter, log, text) =>
     adapter && adapter.log && typeof adapter.log[log] === 'function'
         ? adapter.log[log](text)
-        : console.log(log + ': ' + text);
+        : console.log(`${log}: ${text}`);
 
 class MyAdapter {
     constructor(adapter, main) {
-        if (adapter && main) MyAdapter.init(adapter, main);
+        if (adapter && main) {
+            MyAdapter.init(adapter, main);
+        }
         return MyAdapter;
     }
 
@@ -45,46 +47,45 @@ class MyAdapter {
                 : messages(obj)
         )
             .then(
-                (res) =>
+                res =>
                     this.D(
                         `Message from '${obj.from}', command '${obj.command}', message '${this.S(
                             obj.message,
                         )}' executed with result:"${this.S(res)}"`,
                         res,
                     ),
-                (err) => this.W(`invalid Message ${this.O(obj)} caused error ${this.O(err)}`, err),
+                err => this.W(`invalid Message ${this.O(obj)} caused error ${this.O(err)}`, err),
             )
-            .then((res) => (obj.callback ? adapter.sendTo(obj.from, obj.command, res, obj.callback) : undefined))
-            .then(() => this.c2p(adapter.getMessage)().then((obj) => (obj ? this.processMessage(obj) : true)));
+            .then(res => (obj.callback ? adapter.sendTo(obj.from, obj.command, res, obj.callback) : undefined))
+            .then(() => this.c2p(adapter.getMessage)().then(obj => (obj ? this.processMessage(obj) : true)));
     }
 
     static initAdapter() {
         states = {};
-        this.getObjectList = adapter.getObjectListAsync ?
-            adapter.getObjectListAsync.bind(adapter) :
-            this.c2p(adapter.objects.getObjectList).bind(adapter.objects);
+        this.getObjectList = adapter.getObjectListAsync
+            ? adapter.getObjectListAsync.bind(adapter)
+            : this.c2p(adapter.objects.getObjectList).bind(adapter.objects);
         this.getForeignState = adapter.getForeignStateAsync.bind(adapter);
         this.setForeignState = adapter.setForeignStateAsync.bind(adapter);
         this.getState = adapter.getStateAsync.bind(adapter);
         this.setState = adapter.setStateAsync.bind(adapter);
         this.getStates = adapter.getStatesAsync.bind(adapter);
 
-
         return (
             !adapter.config.forceinit
                 ? this.resolve({
-                    rows: [],
-                })
+                      rows: [],
+                  })
                 : this.getObjectList({
-                    startkey: this.ain,
-                    endkey: this.ain + '\u9999',
-                })
+                      startkey: this.ain,
+                      endkey: `${this.ain}\u9999`,
+                  })
         )
-            .then((res) => (res.rows.length > 0 ? this.D(`will remove ${res.rows.length} old states!`, res) : res))
-            .then((res) => this.seriesOf(res.rows, (i) => this.removeState(i.doc.common.name), 2))
+            .then(res => (res.rows.length > 0 ? this.D(`will remove ${res.rows.length} old states!`, res) : res))
+            .then(res => this.seriesOf(res.rows, i => this.removeState(i.doc.common.name), 2))
             .then(
-                (res) => res,
-                (err) => this.E('err from MyAdapter.series: ' + err),
+                res => res,
+                err => this.E(`err from MyAdapter.series: ${err}`),
             )
             .then(() =>
                 this.getObjectList({
@@ -92,25 +93,32 @@ class MyAdapter {
                 }),
             )
             .then(
-                (res) => {
+                res => {
                     res = res && res.rows ? res.rows : [];
                     objects = {};
-                    for (const i of res) objects[i.doc._id] = i.doc;
-                    if (objects['system.config'] && objects['system.config'].common.language)
+                    for (const i of res) {
+                        objects[i.doc._id] = i.doc;
+                    }
+                    if (objects['system.config'] && objects['system.config'].common.language) {
                         adapter.config.lang = objects['system.config'].common.language;
+                    }
                     if (objects['system.config'] && objects['system.config'].common.latitude) {
                         adapter.config.latitude = parseFloat(objects['system.config'].common.latitude);
                         adapter.config.longitude = parseFloat(objects['system.config'].common.longitude);
                     }
                     return res.length;
                 },
-                (err) => this.E('err from getObjectList: ' + err, 'no'),
+                err => this.E(`err from getObjectList: ${err}`, 'no'),
             )
-            .then((len) => this.D(`${adapter.name} received ${len} objects with config ${Object.keys(adapter.config)}`))
-            .catch((err) => this.W(`Error in adapter.ready: ${err}`))
+            .then(len => this.D(`${adapter.name} received ${len} objects with config ${Object.keys(adapter.config)}`))
+            .catch(err => this.W(`Error in adapter.ready: ${err}`))
             .then(() => {
-                if (stateChange) adapter.subscribeStates('*');
-                if (objChange) adapter.subscribeObjects('*');
+                if (stateChange) {
+                    adapter.subscribeStates('*');
+                }
+                if (objChange) {
+                    adapter.subscribeObjects('*');
+                }
             });
     }
 
@@ -120,7 +128,7 @@ class MyAdapter {
         assert(adapter && adapter.name, 'myAdapter:(adapter) no adapter here!');
         name = adapter.name;
         main = typeof ori_main === 'function' ? ori_main : () => this.W(`No 'main() defined for ${adapter.name}!`);
-        messages = (mes) => Promise.resolve(this.W(`Message ${this.O(mes)} received and no handler defined!`));
+        messages = mes => Promise.resolve(this.W(`Message ${this.O(mes)} received and no handler defined!`));
 
         this._util = util;
         this._fs = fs;
@@ -136,16 +144,14 @@ class MyAdapter {
         this.setForeignObject = this.c2p(adapter.setForeignObject);
         this.getForeignObjects = this.c2p(adapter.getForeignObjects);
         this.getObject = this.c2p(adapter.getObject);
-        this.deleteState = (id) =>
-            this.c1pe(adapter.deleteState)(id).catch((res) =>
-                res === 'Not exists' ? this.resolve() : this.reject(res),
-            );
+        this.deleteState = id =>
+            this.c1pe(adapter.deleteState)(id).catch(res => (res === 'Not exists' ? this.resolve() : this.reject(res)));
         this.delObject = (id, opt) =>
-            this.c1pe(adapter.delObject)(id, opt).catch((res) =>
+            this.c1pe(adapter.delObject)(id, opt).catch(res =>
                 res === 'Not exists' ? this.resolve() : this.reject(res),
             );
         this.delState = (id, opt) =>
-            this.c1pe(adapter.delState)(id, opt).catch((res) =>
+            this.c1pe(adapter.delState)(id, opt).catch(res =>
                 res === 'Not exists' ? this.resolve() : this.reject(res),
             );
         this.removeState = async (id, opt) => {
@@ -157,16 +163,16 @@ class MyAdapter {
         this.extendObject = adapter.extendObjectAsync.bind(adapter);
 
         adapter
-            .on('message', (obj) => (obj ? this.processMessage(this.D(`received Message ${this.O(obj)}`, obj)) : true))
-            .on('unload', (callback) => this.stop(false, callback))
+            .on('message', obj => (obj ? this.processMessage(this.D(`received Message ${this.O(obj)}`, obj)) : true))
+            .on('unload', callback => this.stop(false, callback))
             .on('ready', () => this.initAdapter().then(main))
             .on('objectChange', (id, obj) => (obj && obj._id && objChange ? objChange(id, obj) : null))
             .on('stateChange', (id, state) =>
-                state && state.from !== 'system.adapter.' + this.ains && stateChange
+                state && state.from !== `system.adapter.${this.ains}` && stateChange
                     ? stateChange(this.D(`stateChange called for ${id} = ${this.O(state)}`, id), state).then(
-                        () => true,
-                        (err) => this.W(`Error in StateChange for ${id} = ${this.O(err)}`),
-                    )
+                          () => true,
+                          err => this.W(`Error in StateChange for ${id} = ${this.O(err)}`),
+                      )
                     : null,
             );
 
@@ -175,8 +181,12 @@ class MyAdapter {
 
     static J(/** string */ str, /** function */ reviewer) {
         let res;
-        if (!str) return null;
-        if (this.T(str) !== 'string') str = str.toString();
+        if (!str) {
+            return null;
+        }
+        if (this.T(str) !== 'string') {
+            str = str.toString();
+        }
         try {
             res = JSON.parse(str, reviewer);
         } catch (e) {
@@ -197,7 +207,9 @@ class MyAdapter {
         return Array.isArray(x) ? x.map(this.trim) : typeof x === 'string' ? x.trim() : `${x}`.trim();
     }
     static number(str) {
-        if (!isNaN(str)) str = str % 1 === 0 ? parseInt(str) : parseFloat(str);
+        if (!isNaN(str)) {
+            str = str % 1 === 0 ? parseInt(str) : parseFloat(str);
+        }
         return str;
     }
     static D(str, val) {
@@ -273,10 +285,10 @@ class MyAdapter {
         objects = y;
     }
     static get ains() {
-        return name + '.' + adapter.instance;
+        return `${name}.${adapter.instance}`;
     }
     static get ain() {
-        return this.ains + '.';
+        return `${this.ains}.`;
     }
     static get C() {
         return adapter.config;
@@ -291,18 +303,24 @@ class MyAdapter {
         return JSON.parse(JSON.stringify(obj));
     }
     static wait(time, arg) {
-        return new Promise((res) => setTimeout(res, time, arg));
+        return new Promise(res => setTimeout(res, time, arg));
     }
 
     static P(pv, res, rej) {
-        if (pv instanceof Promise) return pv;
-        if (pv && typeof pv.then === 'function') return new Promise((rs, rj) => pv.then(rs, rj));
-        if (pv) return this.resolve(res || pv);
+        if (pv instanceof Promise) {
+            return pv;
+        }
+        if (pv && typeof pv.then === 'function') {
+            return new Promise((rs, rj) => pv.then(rs, rj));
+        }
+        if (pv) {
+            return this.resolve(res || pv);
+        }
         return this.reject(rej || pv);
     }
 
     static resolve(x) {
-        return new Promise((res) => process.nextTick(() => res(x)));
+        return new Promise(res => process.nextTick(() => res(x)));
     }
 
     static reject(x) {
@@ -318,13 +336,17 @@ class MyAdapter {
             `pTimeout requires optionally a function for callback as third argument`,
         );
         return new Promise((resolve, reject) => {
-            const rs = (res) => {
-                    if (st) clearTimeout(st);
+            const rs = res => {
+                    if (st) {
+                        clearTimeout(st);
+                    }
                     st = null;
                     return resolve(res);
                 },
-                rj = (err) => {
-                    if (st) clearTimeout(st);
+                rj = err => {
+                    if (st) {
+                        clearTimeout(st);
+                    }
                     st = null;
                     return reject(err);
                 };
@@ -332,7 +354,9 @@ class MyAdapter {
                 st = null;
                 reject(`timer ${t} run out`);
             }, t);
-            if (callback) callback(rs, rj);
+            if (callback) {
+                callback(rs, rj);
+            }
             this.P(pr).then(rs, rj);
         });
     }
@@ -349,47 +373,59 @@ class MyAdapter {
     static T(i, j) {
         let t = typeof i;
         if (t === 'object') {
-            if (Array.isArray(i)) t = 'array';
-            else if (i instanceof RegExp) t = 'regexp';
-            else if (i === null) t = 'null';
-        } else if (t === 'number' && isNaN(i)) t = 'NaN';
+            if (Array.isArray(i)) {
+                t = 'array';
+            } else if (i instanceof RegExp) {
+                t = 'regexp';
+            } else if (i === null) {
+                t = 'null';
+            }
+        } else if (t === 'number' && isNaN(i)) {
+            t = 'NaN';
+        }
         return j === undefined ? t : this.T(j) === t;
     }
     static locDate(date) {
         return date instanceof Date
             ? new Date(date.getTime() - date.getTimezoneOffset() * 60000)
             : typeof date === 'string'
-                ? new Date(Date.parse(date) - new Date().getTimezoneOffset() * 60000)
-                : !isNaN(+date)
-                    ? new Date(+date - new Date().getTimezoneOffset() * 60000)
-                    : new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+              ? new Date(Date.parse(date) - new Date().getTimezoneOffset() * 60000)
+              : !isNaN(+date)
+                ? new Date(+date - new Date().getTimezoneOffset() * 60000)
+                : new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
     }
     static dateTime(date) {
         return this.locDate(date).toISOString().slice(0, -5).replace('T', '@');
     }
     static obToArray(obj) {
-        return Object.keys(obj)
-            // eslint-disable-next-line no-prototype-builtins
-            .filter((x) => obj.hasOwnProperty(x))
-            .map((i) => obj[i]);
+        return (
+            Object.keys(obj)
+                // eslint-disable-next-line no-prototype-builtins
+                .filter(x => obj.hasOwnProperty(x))
+                .map(i => obj[i])
+        );
     }
     static includes(obj, value) {
         return this.T(obj, {})
             ? obj[value] !== undefined
             : this.T(obj, [])
-                ? obj.find((x) => x === value) !== undefined
-                : obj === value;
+              ? obj.find(x => x === value) !== undefined
+              : obj === value;
     }
 
     static ownKeys(obj) {
         // eslint-disable-next-line no-prototype-builtins
-        return this.T(obj, {}) ? Object.keys(obj).filter((k) => obj.hasOwnProperty(k)) : [];
+        return this.T(obj, {}) ? Object.keys(obj).filter(k => obj.hasOwnProperty(k)) : [];
     }
 
     static stop(dostop, callback) {
-        if (stopping) return;
+        if (stopping) {
+            return;
+        }
         stopping = true;
-        if (timer) clearInterval(timer);
+        if (timer) {
+            clearInterval(timer);
+        }
         timer = null;
         this.D(`Adapter disconnected and stopped with dostop(${dostop}) and callback(${!!callback})`);
         Promise.resolve(unload ? unload(dostop) : null)
@@ -408,9 +444,11 @@ class MyAdapter {
         const nv = [],
             f =
                 delay > 0
-                    ? (k) => (p = p.then(() => promfn(k).then((res) => this.wait(delay, nv.push(res)))))
-                    : (k) => (p = p.then(() => promfn(k)));
-        for (const item of obj) f(item);
+                    ? k => (p = p.then(() => promfn(k).then(res => this.wait(delay, nv.push(res)))))
+                    : k => (p = p.then(() => promfn(k)));
+        for (const item of obj) {
+            f(item);
+        }
         return p.then(() => nv);
     }
 
@@ -422,9 +460,11 @@ class MyAdapter {
         const nv = [],
             f =
                 delay > 0
-                    ? (k) => (p = p.then(() => promfn(k).then((res) => this.wait(delay, nv.push(res)))))
-                    : (k) => (p = p.then(() => promfn(k)));
-        for (const item in obj) f(item, obj);
+                    ? k => (p = p.then(() => promfn(k).then(res => this.wait(delay, nv.push(res)))))
+                    : k => (p = p.then(() => promfn(k)));
+        for (const item in obj) {
+            f(item, obj);
+        }
         return p.then(() => nv);
     }
 
@@ -442,7 +482,7 @@ class MyAdapter {
         assert(typeof f === 'function', 'c1p (f) error: f is not a function!');
         return function () {
             const args = Array.prototype.slice.call(arguments);
-            return new Promise((res) => (args.push((result) => res(result)), f.apply(this, args)));
+            return new Promise(res => (args.push(result => res(result)), f.apply(this, args)));
         };
     }
 
@@ -452,7 +492,7 @@ class MyAdapter {
         return function () {
             const args = Array.prototype.slice.call(arguments);
             return new Promise(
-                (res, rej) => (args.push((result) => (!result ? res(result) : rej(result))), f.apply(this, args)),
+                (res, rej) => (args.push(result => (!result ? res(result) : rej(result))), f.apply(this, args)),
             );
         };
     }
@@ -460,7 +500,7 @@ class MyAdapter {
     static retry(nretry, fn, arg) {
         assert(typeof fn === 'function', 'retry (,fn,) error: fn is not a function!');
         nretry = parseInt(nretry);
-        return fn(arg).catch((err) => (nretry <= 0 ? this.reject(err) : this.retry(nretry - 1, fn, arg)));
+        return fn(arg).catch(err => (nretry <= 0 ? this.reject(err) : this.retry(nretry - 1, fn, arg)));
     }
 
     static while(/** function */ fw, /** function */ fn, /** number */ time) {
@@ -472,20 +512,20 @@ class MyAdapter {
         return !fw()
             ? this.resolve(true)
             : fn()
-                .then(
-                    () => true,
-                    () => true,
-                )
-                .then(() => this.wait(time))
-                .then(() => this.while(fw, fn, time));
+                  .then(
+                      () => true,
+                      () => true,
+                  )
+                  .then(() => this.wait(time))
+                  .then(() => this.while(fw, fn, time));
     }
 
     static repeat(/** number */ nretry, /** function */ fn, arg) {
         assert(typeof fn === 'function', 'repeat (,fn,) error: fn is not a function!');
         nretry = parseInt(nretry);
         return fn(arg)
-            .then((res) => this.reject(res))
-            .catch((res) => (nretry <= 0 ? this.resolve(res) : this.repeat(nretry - 1, fn, arg)));
+            .then(res => this.reject(res))
+            .catch(res => (nretry <= 0 ? this.resolve(res) : this.repeat(nretry - 1, fn, arg)));
     }
 
     static exec(command) {
@@ -504,32 +544,48 @@ class MyAdapter {
 
     static url(turl, opt) {
         //        this.D(`mup start: ${this.O(turl)}: ${this.O(opt)}`);
-        if (this.T(turl) === 'string') turl = url.parse(turl.trim(), true);
+        if (this.T(turl) === 'string') {
+            turl = url.parse(turl.trim(), true);
+        }
         if (this.T(opt) === 'object') {
             opt = this.clone(opt);
-            if (!turl || !(turl instanceof url.Url)) turl = new url.Url(opt.url);
-            // eslint-disable-next-line no-prototype-builtins
-            for (const i of Object.keys(opt)) if (opt.hasOwnProperty(i) && i !== 'url') turl[i] = opt[i];
+            if (!turl || !(turl instanceof url.Url)) {
+                turl = new url.Url(opt.url);
+            }
+
+            for (const i of Object.keys(opt)) {
+                if (opt.hasOwnProperty(i) && i !== 'url') {
+                    turl[i] = opt[i];
+                }
+            }
         }
         //        this.D(`mup ret: ${this.O(turl)}`);
         return turl;
     }
 
     static request(opt, value, transform) {
-        if (this.T(opt) === 'string') opt = this.url(opt.trim());
+        if (this.T(opt) === 'string') {
+            opt = this.url(opt.trim());
+        }
         if (!(opt instanceof url.Url)) {
             // eslint-disable-next-line no-prototype-builtins
-            if (this.T(opt) !== 'object' || !opt.hasOwnProperty('url'))
+            if (this.T(opt) !== 'object' || !opt.hasOwnProperty('url')) {
                 return Promise.reject(this.W(`Invalid opt or Url for request: ${this.O(opt)}`));
+            }
             opt = this.url(opt.url, opt);
         }
-        if (opt.json)
-            if (opt.headers) opt.headers.Accept = 'application/json';
-            else
+        if (opt.json) {
+            if (opt.headers) {
+                opt.headers.Accept = 'application/json';
+            } else {
                 opt.headers = {
                     Accept: 'application/json',
                 };
-        if (!opt.protocol) opt.protocol = 'http:';
+            }
+        }
+        if (!opt.protocol) {
+            opt.protocol = 'http:';
+        }
         const fun = opt.protocol.startsWith('https') ? https.request : http.request;
         //                this.D(`opt: ${this.O(opt)}`);
         return new Promise((resolve, reject) => {
@@ -539,7 +595,7 @@ class MyAdapter {
                 res = result;
                 //                MyAdapter.D(`status: ${MyAdapter.O(res.statusCode)}/${http.STATUS_CODES[res.statusCode]}`);
                 res.setEncoding(opt.encoding ? opt.encoding : 'utf8');
-                if (MyAdapter.T(opt.status) === 'array' && opt.status.indexOf(res.statusCode) < 0)
+                if (MyAdapter.T(opt.status) === 'array' && opt.status.indexOf(res.statusCode) < 0) {
                     return reject(
                         MyAdapter.D(
                             `request for ${url.format(opt)} had status ${res.statusCode}/${
@@ -547,11 +603,14 @@ class MyAdapter {
                             } other than supported ${opt.status}`,
                         ),
                     );
-                res.on('data', (chunk) => (data += chunk))
+                }
+                res.on('data', chunk => (data += chunk))
                     .on('end', () => {
                         res.removeAllListeners();
                         req.removeAllListeners();
-                        if (MyAdapter.T(transform) === 'function') data = transform(data);
+                        if (MyAdapter.T(transform) === 'function') {
+                            data = transform(data);
+                        }
                         if (opt.json) {
                             try {
                                 return resolve(JSON.parse(data));
@@ -565,18 +624,26 @@ class MyAdapter {
             });
 
             function err(e, msg) {
-                if (!msg) msg = e;
-                if (res) res.removeAllListeners();
+                if (!msg) {
+                    msg = e;
+                }
+                if (res) {
+                    res.removeAllListeners();
+                }
                 //                req && req.removeAllListeners();
-                if (req && !req.aborted) req.abort();
+                if (req && !req.aborted) {
+                    req.abort();
+                }
                 //                res && res.destroy();
-                MyAdapter.D('err in response:' + msg);
+                MyAdapter.D(`err in response:${msg}`);
                 return reject(msg);
             }
 
-            if (opt.timeout) req.setTimeout(opt.timeout, () => err('request timeout Error: ' + opt.timeout + 'ms'));
-            req.on('error', (e) => err('request Error: ' + MyAdapter.O(e))).on('aborted', (e) =>
-                err('request aborted: ' + MyAdapter.O(e)),
+            if (opt.timeout) {
+                req.setTimeout(opt.timeout, () => err(`request timeout Error: ${opt.timeout}ms`));
+            }
+            req.on('error', e => err(`request Error: ${MyAdapter.O(e)}`)).on('aborted', e =>
+                err(`request aborted: ${MyAdapter.O(e)}`),
             );
             // write data to request body
             return req.end(value, opt.encoding ? opt.encoding : 'utf8');
@@ -590,7 +657,7 @@ class MyAdapter {
                 ? https.get
                 : http.get;
         return new Promise((resolve, reject) => {
-            fun(url, (res) => {
+            fun(url, res => {
                 if (res.statusCode !== 200) {
                     const error = new Error(`Request Failed. Status Code: ${res.statusCode}`);
                     res.resume(); // consume response data to free up memory
@@ -598,38 +665,44 @@ class MyAdapter {
                 }
                 res.setEncoding('utf8');
                 let rawData = '';
-                res.on('data', (chunk) => (rawData += chunk));
+                res.on('data', chunk => (rawData += chunk));
                 res.on('end', () => resolve(rawData));
-            }).on('error', (e) => reject(e));
-        }).catch((err) => (!retry ? this.reject(err) : this.wait(100, retry - 1).then((a) => this.get(url, a))));
+            }).on('error', e => reject(e));
+        }).catch(err => (!retry ? this.reject(err) : this.wait(100, retry - 1).then(a => this.get(url, a))));
     }
 
     static equal(a, b) {
         /*jshint -W116 */
-        if (a == b)
+        if (a == b) {
             /*jshint +W116 */
             return true;
+        }
         const ta = this.T(a),
             tb = this.T(b);
         if (ta === tb) {
-            if (ta === 'array' || ta === 'function' || ta === 'object') return JSON.stringify(a) === JSON.stringify(b);
-        } else if (ta === 'string' && (tb === 'array' || tb === 'function' || tb === 'object') && a === this.O(b))
+            if (ta === 'array' || ta === 'function' || ta === 'object') {
+                return JSON.stringify(a) === JSON.stringify(b);
+            }
+        } else if (ta === 'string' && (tb === 'array' || tb === 'function' || tb === 'object') && a === this.O(b)) {
             return true;
+        }
         return false;
     }
 
     static changeState(id, value, ack, always) {
-        if (value === undefined) return this.resolve();
+        if (value === undefined) {
+            return this.resolve();
+        }
         assert(typeof id === 'string', 'changeState (id,,,) error: id is not a string!');
         always = always === undefined ? false : !!always;
         ack = ack === undefined ? true : !!ack;
         return this.getState(id)
-            .then((st) =>
+            .then(st =>
                 st && !always && this.equal(st.val, value) && st.ack === ack
                     ? this.resolve()
                     : this.setState(this.D(`Change ${id} to ${this.O(value)} with ack: ${ack}`, id), value, ack),
             )
-            .catch((err) =>
+            .catch(err =>
                 this.W(`Error in MyAdapter.setState(${id},${value},${ack}): ${err}`, this.setState(id, value, ack)),
             );
     }
@@ -638,16 +711,20 @@ class MyAdapter {
         //        this.D(`Make State ${this.O(ido)} and set value to:${this.O(value)} ack:${ack}`); ///TC
         ack = ack === undefined || !!ack;
         let id = ido;
-        if (typeof id === 'string')
+        if (typeof id === 'string') {
             ido = id.endsWith('Percent')
                 ? {
-                    unit: '%',
-                }
+                      unit: '%',
+                  }
                 : {};
-        else if (typeof id.id === 'string') {
+        } else if (typeof id.id === 'string') {
             id = id.id;
-        } else return this.reject(this.W(`Invalid makeState id: ${this.O(id)}`));
-        if (this.states[id]) return this.changeState(id, value, ack, always);
+        } else {
+            return this.reject(this.W(`Invalid makeState id: ${this.O(id)}`));
+        }
+        if (this.states[id]) {
+            return this.changeState(id, value, ack, always);
+        }
         //    this.D(`Make State ${id} and set value to:${this.O(value)} ack:${ack}`); ///TC
         const st = {
             common: {
@@ -664,15 +741,21 @@ class MyAdapter {
         for (const i in ido) {
             if (i === 'native') {
                 st.native = st.native || {};
-                for (const j in ido[i]) st.native[j] = ido[i][j];
-            } else if (i !== 'id' && i !== 'val') st.common[i] = ido[i];
+                for (const j in ido[i]) {
+                    st.native[j] = ido[i][j];
+                }
+            } else if (i !== 'id' && i !== 'val') {
+                st.common[i] = ido[i];
+            }
         }
-        if (st.common.write) st.common.role = st.common.role.replace(/^value/, 'level');
+        if (st.common.write) {
+            st.common.role = st.common.role.replace(/^value/, 'level');
+        }
         //    this.I(`will create state:${id} with ${this.O(st)}`);
         return this.extendObject(id, st, null)
-            .then((x) => (this.states[id] = x))
+            .then(x => (this.states[id] = x))
             .then(() => (st.common.state === 'state' ? this.changeState(id, value, ack, always) : true))
-            .catch((err) => this.D(`MS ${this.O(err)}`, id));
+            .catch(err => this.D(`MS ${this.O(err)}`, id));
     }
 }
 

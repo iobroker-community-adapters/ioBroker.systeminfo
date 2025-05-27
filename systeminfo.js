@@ -53,7 +53,7 @@ function xmlParseString(body) {
             //			validator: (xpath, currentValue, newValue) => A.D(`${xpath}: ${currentValue} = ${newValue}`,newValue),
             //			validator: (xpath, currentValue, newValue) => A.T(newValue,[]) && newValue.length==1 && A.T(newValue[0],[]) ? newValue[0] : newValue,
             //			attrNameProcessors: [str => str === '$' ? '_' : str],
-            tagNameProcessors: [(str) => str.replace(reStripPrefix, '')],
+            tagNameProcessors: [str => str.replace(reStripPrefix, '')],
             //                attrNameProcessors: [tagnames],
             attrValueProcessors: [valp],
             valueProcessors: [valp],
@@ -87,12 +87,16 @@ class Cache {
         const that = this;
         assert(!fun || A.T(fun) === 'function', 'Cache arg need to be a function returning a promise!');
         //        A.D(`looking for ${item} in ${A.O(this._cache)}`);
-        if (this._cache[item] !== undefined) return A.resolve(this._cache[item]);
-        if (!fun) fun = this._fun;
+        if (this._cache[item] !== undefined) {
+return A.resolve(this._cache[item]);
+}
+        if (!fun) {
+fun = this._fun;
+}
         assert(A.T(fun) === 'function', `checkItem needs a function to fill cache!`);
         return fun(item).then(
-            (res) => (that._cache[item] = res),
-            (err) => A.D(`checkitem error ${err} finding result for ${item}`, null),
+            res => (that._cache[item] = res),
+            err => A.D(`checkitem error ${err} finding result for ${item}`, null),
         );
     }
     clear() {
@@ -111,25 +115,28 @@ class JsonPath {
     parse(expr) {
         this.result = [];
 
-        if (this.$ && !expr) return [this.$];
-        else if (!this.$) return false;
+        if (this.$ && !expr) {
+return [this.$];
+} else if (!this.$) {
+return false;
+}
 
         const subx = [];
         const subs = [];
-        let res = expr.replace(/([^\\]"|^"|\\\\")(\\"|[^"])+?"/g, ($0) => {
+        let res = expr.replace(/([^\\]"|^"|\\\\")(\\"|[^"])+?"/g, $0 => {
             const t = $0[1] === '"' ? $0[0] : '',
                 s = t === '' ? $0.slice(1, -1) : $0.slice(2, -1);
-            return t + '__' + (subs.push(s.replace(/\\"/g, '"')) - 1) + '__';
+            return `${t}__${subs.push(s.replace(/\\"/g, '"')) - 1}__`;
         });
-        res = res.replace(/\s*([\w\$]+)\s*(\.\s*(\w|$)+\s*)*/g, (_0) =>
+        res = res.replace(/\s*([\w\$]+)\s*(\.\s*(\w|$)+\s*)*/g, _0 =>
             _0
                 .split('.')
-                .map((a) => a.trim())
+                .map(a => a.trim())
                 .join('\\§'),
         );
         res = res.replace(
             /\[([\?\!]?\(.+?\))\]/g,
-            ($0, $1) => '[#' + (subx.push($1.trim().replace(/,/g, '\\#').replace(/\./g, '\\§')) - 1),
+            ($0, $1) => `[#${subx.push($1.trim().replace(/,/g, '\\#').replace(/\./g, '\\§')) - 1}`,
         );
         res = res.replace(/(\.|\];?)?\s*(\[|\];?|\]\s*\[)/g, ';');
         res = res.replace(/\.\.\.|\.\./g, ';;');
@@ -144,8 +151,8 @@ class JsonPath {
         this.trace(
             res
                 .split(';')
-                .map((s) => s.trim())
-                .filter((s) => s.length),
+                .map(s => s.trim())
+                .filter(s => s.length),
             this.$,
             '$',
         );
@@ -158,37 +165,45 @@ class JsonPath {
             const res = $ && _v && eval(x.replace(/\\\#/g, ',').replace(/@/g, '_v')); // A.D(`eval:[${x}] returns ${res} and had ${A.O(_v)}`);
             return res;
         } catch (e) {
-            throw new SyntaxError('jsonPath: ' + e.message + ': ' + x.replace(/@/g, '_v').replace(/\^/g, '_a'));
+            throw new SyntaxError(`jsonPath: ${e.message}: ${x.replace(/@/g, '_v').replace(/\^/g, '_a')}`);
         }
         //return null;
     }
 
     trace(x, val) {
         function walk(loc, expr, val, f) {
-            if (val instanceof Array) val.map((c, i) => (c !== undefined ? f(i, loc, expr, val) : null));
-            else if (typeof val === 'object')
+            if (val instanceof Array) {
+val.map((c, i) => (c !== undefined ? f(i, loc, expr, val) : null));
+} else if (typeof val === 'object')
                 // eslint-disable-next-line no-prototype-builtins
-                Object.keys(val).map((m) => (val.hasOwnProperty(m) ? f(m, loc, expr, val) : null));
+                Object.keys(val).map(m => (val.hasOwnProperty(m) ? f(m, loc, expr, val) : null));
+            }
         }
         const that = this;
-        if (!x || x.length === 0) return this.result.push(val);
+        if (!x || x.length === 0) {
+return this.result.push(val);
+}
         const loc = x.shift(); //		A.D(`loc: '${loc}', x:[${x}],  val:${val}`);
-        if (loc === undefined || loc.length === 0) return this.trace(x, val);
-        if (/^\(.*?\)$/.test(loc))
+        if (loc === undefined || loc.length === 0) {
+return this.trace(x, val);
+}
+        if (/^\(.*?\)$/.test(loc)) {
             // [(expr)]
             this.trace([that.myeval(loc, val)].concat(x), val);
-        else if (/^\?\(.*?\)$/.test(loc))
+        } else if (/^\?\(.*?\)$/.test(loc)) {
             // [?(expr)]
             walk(loc, x, val, (m, l, x, v) =>
                 that.myeval(l.slice(2, -1), v[m]) ? that.trace([m].concat(x), v) : null,
             );
-        else if (/^\!\(.*?\)$/.test(loc)) {
+} else if (/^\!\(.*?\)$/.test(loc)) {
             // [!(expr)]
             const res = that.myeval(loc.slice(2, -1), val);
-            if (res) that.trace(Array.from(x), res);
+            if (res) {
+that.trace(Array.from(x), res);
+}
         } else if (/^(-?[0-9]*):(-?[0-9]*):?([0-9]*)$/.test(loc)) {
             // eslint-disable-next-line no-prototype-builtins
-            const ov = Object.keys(val).filter((k) => val.hasOwnProperty(k));
+            const ov = Object.keys(val).filter(k => val.hasOwnProperty(k));
             const len = ov.length;
             let start = 0;
             let end = len;
@@ -200,22 +215,28 @@ class JsonPath {
             });
             start = start < 0 ? Math.max(0, start + len) : Math.min(len, start);
             end = end < 0 ? Math.max(0, end + len) : Math.min(len, end);
-            for (let j = start; j < end; j += step) this.trace([ov[j]].concat(x), val);
-        // eslint-disable-next-line no-prototype-builtins
-        } else if (val && val.hasOwnProperty(loc)) this.trace(Array.from(x), val[loc]);
-        else if (/^\d+$/.test(loc)) {
+            for (let j = start; j < end; j += step) {
+this.trace([ov[j]].concat(x), val);
+}
             // eslint-disable-next-line no-prototype-builtins
-            const ov = Object.keys(val).filter((k) => val.hasOwnProperty(k));
+        } else if (val && val.hasOwnProperty(loc)) {
+this.trace(Array.from(x), val[loc]);
+} else if (/^\d+$/.test(loc)) {
+            // eslint-disable-next-line no-prototype-builtins
+            const ov = Object.keys(val).filter(k => val.hasOwnProperty(k));
             this.trace([ov[parseInt(loc)]].concat(x), val);
         } else if (/,/.test(loc)) {
             // [name1,name2,...]
-            loc.split(',').map((s) => that.trace([s.trim()].concat(x), val));
+            loc.split(',').map(s => that.trace([s.trim()].concat(x), val));
         } else if (/[\w\$]+\s*\.\s*[\w\$]+/.test(loc)) {
-            const o = loc.split('.').map((s) => s.trim());
+            const o = loc.split('.').map(s => s.trim());
             // eslint-disable-next-line no-prototype-builtins
-            if (val && val.hasOwnProperty(o[0])) this.trace([o.slice(1).join('.')].concat(x), val[o[0]]);
-        } else if (loc === '*') walk(loc, x, val, (m, l, x, v) => that.trace([m].concat(x), v));
-        else if (loc === '..') {
+            if (val && val.hasOwnProperty(o[0])) {
+this.trace([o.slice(1).join('.')].concat(x), val[o[0]]);
+}
+        } else if (loc === '*') {
+walk(loc, x, val, (m, l, x, v) => that.trace([m].concat(x), v));
+} else if (loc === '..') {
             //		    A.D(`I will do '..' on [${x}]`);
             this.trace(Array.from(x), val);
             walk(loc, x, val, (m, l, x, v) => (typeof v[m] === 'object' ? that.trace(['..'].concat(x), v[m]) : null));
@@ -229,12 +250,12 @@ A.stateChange = function (id, state) {
         const nid = id.startsWith(A.ain) ? id.slice(A.ain.length) : id;
         //		A.D(`Somebody (${state.from}) id0 ${id0} changed ${id} of "${id0}" to ${A.O(state)}`);
         return A.getObject(nid)
-            .then((obj) =>
+            .then(obj =>
                 obj && obj.native && obj.native.si && obj.native.si.write
                     ? writeInfo(nid, state)
                     : Promise.reject(A.D(`Invalid stateChange for "${nid}"`)),
             )
-            .catch((err) => A.W(`Error in StateChange for ${nid}: ${A.O(err)}`));
+            .catch(err => A.W(`Error in StateChange for ${nid}: ${A.O(err)}`));
     }
 };
 
@@ -306,15 +327,32 @@ class WebQuery {
             if (A.T(opt, '')) {
                 copt._sel = opt;
                 opt = copt;
-            } else if (!A.T(opt, {})) return copt;
-            for (const i of A.ownKeys(opt)) if (!i.startsWith('_')) copt[i] = opt[i];
-            if (opt._notrim) copt._notrim = opt._notrim;
-            if (name || opt._name) copt._name = name ? name : opt._name;
-            if (opt._conv) copt._conv = opt._conv;
-            if (opt._filter) copt._filter = opt._filter;
-            if (opt._fun) copt._fun = opt._fun;
-            if (opt._eq) copt._eq = opt._eq;
-            if (opt._sel) copt._sel = opt._sel;
+            } else if (!A.T(opt, {})) {
+return copt;
+}
+            for (const i of A.ownKeys(opt)) {
+if (!i.startsWith('_')) {copt[i] = opt[i];}}
+            if (opt._notrim) {
+copt._notrim = opt._notrim;
+}
+            if (name || opt._name) {
+copt._name = name ? name : opt._name;
+}
+            if (opt._conv) {
+copt._conv = opt._conv;
+}
+            if (opt._filter) {
+copt._filter = opt._filter;
+}
+            if (opt._fun) {
+copt._fun = opt._fun;
+}
+            if (opt._eq) {
+copt._eq = opt._eq;
+}
+            if (opt._sel) {
+copt._sel = opt._sel;
+}
             return copt;
         }
 
@@ -323,10 +361,14 @@ class WebQuery {
         let name;
         let res = opt._sel ? this._$(opt._sel, con) : con ? con : this._$('body', con);
 
-        if (A.T(opt._eq, 0)) res = res.eq(opt._eq);
+        if (A.T(opt._eq, 0)) {
+res = res.eq(opt._eq);
+}
 
         for (name of A.ownKeys(opt)) {
-            if (name.startsWith('_')) continue;
+            if (name.startsWith('_')) {
+continue;
+}
 
             const nopt = norm(opt[name]);
             const m = name.match(/^([$\w]*)(\!?)\[(.+)\]$/);
@@ -340,7 +382,9 @@ class WebQuery {
                 let sel = m[3].trim();
                 const eq = parseInt(sel).toString() === sel;
 
-                if (nam) name = nam;
+                if (nam) {
+name = nam;
+}
 
                 if (!ex && eq) {
                     sel = parseInt(sel);
@@ -348,13 +392,17 @@ class WebQuery {
                     if (nam) {
                         data[nam] = this.handle(nopt, r);
                         continue;
-                    } else res = r;
+                    } else {
+res = r;
+}
                 } else if (ex) {
                     const r = WebQuery.eval(sel, res, con);
                     if (nam) {
                         data[nam] = this.handle(nopt, r);
                         continue;
-                    } else res = r;
+                    } else {
+res = r;
+}
                 } else {
                     docs = data[name] = [];
                     items = this._$(sel, res);
@@ -364,8 +412,10 @@ class WebQuery {
                         if (nam) {
                             data[nam] = this.handle(nopt, r);
                             continue;
-                        } else res = r;
-                    } else
+                        } else {
+res = r;
+}
+                    } else {
                         for (let i = 0; i < items.length; ++i) {
                             item = items.eq(i);
                             if (
@@ -377,34 +427,44 @@ class WebQuery {
                                 docs.push(cdoc);
                             }
                         }
+}
                     continue;
                 }
             } else {
                 data[name] = this.handle(nopt, res);
             }
         }
-        if (A.ownKeys(data).length) return data;
+        if (A.ownKeys(data).length) {
+return data;
+}
         let value =
             typeof opt._fun === 'function'
                 ? opt._fun(res)
                 : A.T(opt._fun, '')
-                    ? WebQuery.eval(opt._fun, res)
-                    : res && res.text
-                        ? res.text()
-                        : res;
+                  ? WebQuery.eval(opt._fun, res)
+                  : res && res.text
+                    ? res.text()
+                    : res;
 
-        if (!opt._notrim && A.T(value, '')) value = value.trim().replace(/[\s\n]+/g, ' ');
+        if (!opt._notrim && A.T(value, '')) {
+value = value.trim().replace(/[\s\n]+/g, ' ');
+}
 
         if (opt._conv) {
-            if (typeof opt._conv === 'function') value = opt._conv(value, res);
-            else if (typeof opt._conv === 'string') value = WebQuery.eval(opt._conv, value, res);
+            if (typeof opt._conv === 'function') {
+value = opt._conv(value, res);
+} else if (typeof opt._conv === 'string') {
+value = WebQuery.eval(opt._conv, value, res);
+}
         }
         return value;
     }
 }
 
 function writeInfo(id, state) {
-    if (!states[id] || !states[id].wfun) return Promise.reject(`Err: no write function defined for ${id}!`);
+    if (!states[id] || !states[id].wfun) {
+return Promise.reject(`Err: no write function defined for ${id}!`);
+}
     const obj = states[id];
     let val = state.val;
     A.D(`new state:${A.O(state)} for ${id}`);
@@ -420,14 +480,16 @@ function writeInfo(id, state) {
         obj
             .wfun(val)
             .then(() => A.makeState(id, state.val, true))
-            .catch((e) => A.W(`wfun err ${e}`))
+            .catch(e => A.W(`wfun err ${e}`))
     );
 }
 
 function setItem(item, name, value) {
     //	A.D(`setItem ${name} to ${A.O(value)} with ${item.type};${item.conv};${item.role}`);
-    if (!states[name]) states[name] = item;
-    if (item.conv)
+    if (!states[name]) {
+states[name] = item;
+}
+    if (item.conv) {
         switch (item.conv.trim().toLowerCase()) {
             case 'number':
                 value = isNaN(value) ? NaN : A.number(value);
@@ -444,13 +506,14 @@ function setItem(item, name, value) {
                 break;
             default:
                 if (item.conv.indexOf('@') >= 0)
-                    try {
+                    {try {
                         value = WebQuery.eval(item.conv, value);
                     } catch (e) {
                         A.W(`convert '${item.conv}' for item ${name} failed with: ${e}`);
-                    }
+                    }}
                 break;
         }
+}
     const o = A.clone(item.opt);
     o.id = name;
     switch (A.T(value)) {
@@ -474,27 +537,35 @@ function doPoll(plist) {
 
     if (!plist) {
         plist = [];
-        for (const k of A.ownKeys(list)) plist = plist.concat(list[k]);
+        for (const k of A.ownKeys(list)) {
+plist = plist.concat(list[k]);
+}
     }
-    if (plist.length === 0) return;
+    if (plist.length === 0) {
+return;
+}
     //	A.D(`I should poll ${plist.map(x => x.id)} now!`);
     const caches = {};
     return A.seriesOf(
         plist,
-        (item) => {
-            if (!item.fun) return Promise.reject(`Undefined function in ${A.O(item)}`);
+        item => {
+            if (!item.fun) {
+return Promise.reject(`Undefined function in ${A.O(item)}`);
+}
             const ca = item.type + item.source;
-            if (!caches[ca]) caches[ca] = new Cache();
+            if (!caches[ca]) {
+caches[ca] = new Cache();
+}
             return caches[ca]
                 .cacheItem(ca, item.fun)
-                .then((res) => {
+                .then(res => {
                     let ma;
                     let jp;
                     const id = item.id;
                     let typ = item.type;
                     return A.resolve(res)
                         .then(
-                            (res) => {
+                            res => {
                                 switch (item.conv) {
                                     case 'html':
                                         typ = 'info';
@@ -508,7 +579,7 @@ function doPoll(plist) {
                                         break;
                                     case 'xml':
                                         typ = 'info';
-                                        return xmlParseString(res).then((json) => ((res = json), json));
+                                        return xmlParseString(res).then(json => ((res = json), json));
                                     default:
                                         if ((jp = item.conv.match(reIsRegExp))) {
                                             jp = new RegExp(jp[1], jp[2]);
@@ -521,14 +592,16 @@ function doPoll(plist) {
                                 }
                                 return res;
                             },
-                            (e) => A.W(`Error ${e} in doPoll for ${item.name}`),
+                            e => A.W(`Error ${e} in doPoll for ${item.name}`),
                         )
-                        .then((res) => {
+                        .then(res => {
                             A.D(`${item.name}  received ${A.O(res, 1)}`);
                             if (typ === 'info') {
                                 jp = new JsonPath(res);
                                 ma = jp.parse(item.conv === 'html' ? item.regexp.selection : item.regexp);
-                                if (ma && ma.length > 0) res = ma;
+                                if (ma && ma.length > 0) {
+res = ma;
+}
                             } else {
                                 ma = item.regexp && res.match(item.regexp);
                                 ma = ma && ma.length > 1 ? ma.slice(1) : null;
@@ -540,62 +613,69 @@ function doPoll(plist) {
                                     ma = ma[0];
                                     return A.seriesOf(
                                         // eslint-disable-next-line no-prototype-builtins
-                                        Object.keys(ma).filter((x) => ma.hasOwnProperty(x)),
-                                        (i) => setItem(item, idid(id, i.replace(/[\. ]/g, '_')), ma[i]),
+                                        Object.keys(ma).filter(x => ma.hasOwnProperty(x)),
+                                        i => setItem(item, idid(id, i.replace(/[\. ]/g, '_')), ma[i]),
                                         1,
                                     );
                                 }
                                 if (id.name && mat === 'object') {
-                                    if (!id.value)
+                                    if (!id.value) {
                                         return A.seriesOf(
                                             ma,
-                                            (o) =>
+                                            o =>
                                                 A.T(o, {})
                                                     ? A.seriesOf(
-                                                        // eslint-disable-next-line no-prototype-builtins
-                                                        Object.keys(o).filter((x) => o.hasOwnProperty(x)),
-                                                        (i) =>
-                                                            i !== id.name
-                                                                ? setItem(
-                                                                    item,
-                                                                    idid(
-                                                                        id,
-                                                                        o[id.name].replace(/[\. ]/g, '_') + '.' + i,
-                                                                    ),
-                                                                    o[i],
-                                                                )
-                                                                : A.resolve(),
-                                                        1,
-                                                    )
+                                                          // eslint-disable-next-line no-prototype-builtins
+                                                          Object.keys(o).filter(x => o.hasOwnProperty(x)),
+                                                          i =>
+                                                              i !== id.name
+                                                                  ? setItem(
+                                                                        item,
+                                                                        idid(
+                                                                            id,
+                                                                            o[id.name].replace(/[\. ]/g, '_') + '.' + i,
+                                                                        ),
+                                                                        o[i],
+                                                                    )
+                                                                  : A.resolve(),
+                                                          1,
+                                                      )
                                                     : A.resolve(),
                                             1,
                                         );
+}
                                     return A.seriesOf(
                                         ma,
-                                        (o) => setItem(item, idid(id, o[id.name].replace(/[\. ]/g, '_')), o[id.value]),
+                                        o => setItem(item, idid(id, o[id.name].replace(/[\. ]/g, '_')), o[id.value]),
                                         1,
                                     );
                                 }
                                 //						if (io && A.T(item.id.mid, [])) {
-                                if (id.mid === '*')
-                                    return A.seriesIn(ma, (i) => setItem(item, idid(id, i), ma[parseInt(i)]), 1);
+                                if (id.mid === '*') {
+                                    return A.seriesIn(ma, i => setItem(item, idid(id, i), ma[parseInt(i)]), 1);
+                                }
 
-                                if (A.T(item.id.mid, []))
+                                if (A.T(item.id.mid, [])) {
                                     return A.seriesIn(
                                         item.id.mid,
-                                        (i) => {
+                                        i => {
                                             i = parseInt(i);
                                             return setItem(item, idid(id, id.mid[i]), ma[i]);
                                         },
                                         1,
                                     );
+}
                                 res = ma;
-                            } else if (ma) res = A.T(ma, []) && ma.length === 1 && typ === 'info' ? ma[0] : ma;
-                            if (A.T(item.id, '')) return setItem(item, item.id, res);
+                            } else if (ma) {
+res = A.T(ma, []) && ma.length === 1 && typ === 'info' ? ma[0] : ma;
+}
+                            if (A.T(item.id, '')) {
+return setItem(item, item.id, res);
+}
                             return setItem(item, idid(id, '?'), res);
                         });
                 })
-                .catch((e) => A.W(`Error ${e} in doPoll for ${item.name}`));
+                .catch(e => A.W(`Error ${e} in doPoll for ${item.name}`));
         },
         1,
     );
@@ -604,11 +684,14 @@ function doPoll(plist) {
 function main() {
     A.I(`Startup Systeminfo Adapter ${A.ains}: ${A.O(adapter.config)}`);
 
-    if ((A.debug = adapter.config.startup.startsWith('debug!')))
+    if ((A.debug = adapter.config.startup.startsWith('debug!'))) {
         adapter.config.startup = adapter.config.startup.slice(A.D(`Debug mode on!`, 6));
+    }
 
     for (const item of adapter.config.items) {
-        if (item.name.startsWith('-')) continue;
+        if (item.name.startsWith('-')) {
+continue;
+}
         const ni = A.clone(item);
         const ir = item.name.trim().match(reIsMultiName);
         if (!ir) {
@@ -631,7 +714,9 @@ function main() {
                 }
             }
             ni.id = irn;
-        } else ni.id = ir[1];
+        } else {
+ni.id = ir[1];
+}
         ni.write = ni.write && ni.write.trim();
         ni.source = ni.source.trim();
         ni.conv = ni.conv && ni.conv.trim();
@@ -650,9 +735,9 @@ function main() {
                 unit: unit,
                 native: {},
             };
-        if (ni.type === 'info' || ni.conv === 'xml' || ni.conv === 'json' || ni.conv === 'html')
+        if (ni.type === 'info' || ni.conv === 'xml' || ni.conv === 'json' || ni.conv === 'html') {
             ni.regexp = ni.regexp.trim();
-        else {
+        } else {
             try {
                 let r = ni.regexp && ni.regexp.trim();
                 const m = r.match(reIsRegExp);
@@ -670,8 +755,8 @@ function main() {
         opt.native.si = A.clone(ni);
         switch (ni.type) {
             case 'exec':
-                ni.fun = () => A.exec(ni.source).then((x) => x.trim());
-                ni.wfun = (val) => {
+                ni.fun = () => A.exec(ni.source).then(x => x.trim());
+                ni.wfun = val => {
                     let w = ni.write;
                     let e = w.match(reIsEvalWrite);
                     while (e) {
@@ -683,8 +768,8 @@ function main() {
                 };
                 break;
             case 'file':
-                ni.fun = () => A.readFile(ni.source, 'utf8').then((x) => x.trim());
-                ni.wfun = (val) => A.writeFile(ni.source, val.toString(), 'utf8');
+                ni.fun = () => A.readFile(ni.source, 'utf8').then(x => x.trim());
+                ni.wfun = val => A.writeFile(ni.source, val.toString(), 'utf8');
                 ni.wtext = 'eval';
                 break;
             case 'web':
@@ -696,33 +781,36 @@ function main() {
                     }
                     return A.request(ni.source);
                 };
-                if (ni.conv === 'html' && /^\{.+\}$/.test(ni.regexp))
+                if (ni.conv === 'html' && /^\{.+\}$/.test(ni.regexp)) {
                     try {
-                        const cmd = WebQuery.eval('(' + ni.regexp + ')'),
+                        const cmd = WebQuery.eval(`(${  ni.regexp  })`),
                             keys = A.ownKeys(cmd),
                             sel = keys[0],
                             webQuery = cmd[sel];
                         if (keys.length === 1 && A.T(webQuery, {}))
-                            ni.regexp = {
+                            {ni.regexp = {
                                 selection: sel,
                                 conv: (res) => new WebQuery(res).handle(webQuery),
-                            };
-                        else A.W(`Invalid Web query in regexp for ${ni.name}`);
+                            };}
+                        else {A.W(`Invalid Web query in regexp for ${ni.name}`);}
                     } catch (e) {
                         A.W(`Invalid Web query for ${ni.name} cased error ${e}`);
                     }
+}
                 break;
 
             case 'info':
                 ni.fun = () => {
                     const m = ni.source.match(reIsInfoName);
-                    if (!m)
+                    if (!m) {
                         return A.W(`Invalid function statement in ${ni.name} for '${reIsInfoName}'`, A.resolve(null));
-                    if (A.T(si[m[1]]) !== 'function')
+                    }
+                    if (A.T(si[m[1]]) !== 'function') {
                         return A.W(
                             `Invalid function of 'systeminformation' in ${ni.name} for '${reIsInfoName}'`,
                             A.resolve(null),
                         );
+}
                     return A.P(si[m[1]].apply(si, m[2] ? A.trim(m[2].slice(1, -1).split(',')) : [])).then(A.nop, A.nop);
                 };
                 break;
@@ -734,9 +822,11 @@ function main() {
         let sch = item.sched ? item.sched.trim() : '';
         const scht = sch.match(reIsTime);
         if (scht) {
-            if (scht[3] === undefined) scht[3] = (A.obToArray(list).length % 58) + 1;
+            if (scht[3] === undefined) {
+scht[3] = (A.obToArray(list).length % 58) + 1;
+}
             sch = `${scht[3]} ${scht[2]} ${scht[1]} * * *`;
-        } else if (sch.match(/^\d+[smh]$/))
+        } else if (sch.match(/^\d+[smh]$/)) {
             switch (sch.slice(-1)) {
                 case 's':
                     sch = `*/${sch.slice(0, -1)} * * * * *`;
@@ -748,14 +838,20 @@ function main() {
                     sch = `0 */${sch.slice(0, -1)} * * *`;
                     break;
             }
+}
         if (sch && sch.match(reIsSchedule)) {
             opt.native.si.sched = sch;
-            if (list[sch]) list[sch].push(ni);
-            else list[sch] = [ni];
+            if (list[sch]) {
+list[sch].push(ni);
+} else {
+list[sch] = [ni];
+}
             scheds[sch] = null;
-        } else A.W(`Invalid schedule in item ${item.name}`);
+        } else {
+A.W(`Invalid schedule in item ${item.name}`);
+}
     }
-    if (A.debug)
+    if (A.debug) {
         A.makeState(
             '_config',
             JSON.stringify({
@@ -764,21 +860,22 @@ function main() {
             }),
             true,
         );
+}
     A.seriesOf(
         A.trim(adapter.config.startup.split('\n')),
-        (x) => (!x.startsWith('#') ? A.exec(x).then(A.nop, A.D) : A.resolve()),
+        x => (!x.startsWith('#') ? A.exec(x).then(A.nop, A.D) : A.resolve()),
         10,
     )
         .then(() => doPoll())
         .then(() =>
             A.getObjectList({
                 startkey: A.ain,
-                endkey: A.ain + '\u9999',
+                endkey: `${A.ain}\u9999`,
             })
-                .then((res) =>
+                .then(res =>
                     A.seriesOf(
                         res.rows,
-                        (item) =>
+                        item =>
                             A.states[item.id.slice(A.ain.length)]
                                 ? A.resolve()
                                 : A.D(`Delete unneeded state ${item.id}`, A.removeState(item.id.slice(A.ain.length))),
@@ -787,7 +884,7 @@ function main() {
                 )
                 .then(() => {
                     for (const sh in list) {
-                        A.D(`Will poll every '${sh}': ${list[sh].map((x) => x.name)}.`);
+                        A.D(`Will poll every '${sh}': ${list[sh].map(x => x.name)}.`);
                         scheds[sh] = schedule.scheduleJob(sh, () => doPoll(list[sh]));
                     }
                 })
@@ -799,6 +896,6 @@ function main() {
                         )}/${A.obToArray(states).length} items/states to process.`,
                     ),
                 )
-                .catch((e) => A.W(`Unhandled error in main: ${e}`)),
+                .catch(e => A.W(`Unhandled error in main: ${e}`)),
         );
 }
