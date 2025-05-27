@@ -1,6 +1,6 @@
 /**
  *      iobroker MyAdapter class V1.2.1 from systeminfo
- *      (c) 2016- <frankjoke@hotmail.com> 
+ *      (c) 2016- <frankjoke@hotmail.com>
  *      MIT License
  */
 // jshint  node: true, esversion: 6, strict: true, undef: true, unused: true
@@ -148,10 +148,10 @@ class MyAdapter {
             this.c1pe(adapter.delState)(id, opt).catch((res) =>
                 res === 'Not exists' ? this.resolve() : this.reject(res),
             );
-         this.removeState = async (id, opt) => {
-                await adapter.delStateAsync(id, opt).catch(this.nop);
-                await adapter.delObjectAsync((delete states[id], id), opt).catch(this.nop);
-            };     
+        this.removeState = async (id, opt) => {
+            await adapter.delStateAsync(id, opt).catch(this.nop);
+            await adapter.delObjectAsync((delete states[id], id), opt).catch(this.nop);
+        };
         this.setObject = this.c2p(adapter.setObject);
         this.createState = this.c2p(adapter.createState);
         this.extendObject = adapter.extendObjectAsync.bind(adapter);
