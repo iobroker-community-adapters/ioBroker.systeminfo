@@ -83,7 +83,8 @@
       "zh-cn": "获取(或)系统或网络的数据"
     },
     "authors": [
-      "ioBroker community, mcm1957 <mcm57@gmx.at>"
+      "ioBroker community, mcm1957 <mcm57@gmx.at>",
+      "iobroker-community-adapters <iobroker-community-adapters@gmx.de>"
     ],
     "licenseInformation": {
       "license": "MIT",
@@ -120,7 +121,7 @@
     ],
     "globalDependencies": [
       {
-        "admin": ">=6.17.14"
+        "admin": ">=7.6.17"
       }
     ],
     "messages": [
