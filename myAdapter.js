@@ -5,13 +5,13 @@
  */
 // jshint  node: true, esversion: 6, strict: true, undef: true, unused: true
 //"use strict";
-const util = require('util');
-const http = require('http');
-const https = require('https');
-const url = require('url');
-const fs = require('fs');
-const exec = require('child_process').exec;
-const assert = require('assert');
+const util = require('node:util');
+const http = require('node:http');
+const https = require('node:https');
+const url = require('node:url');
+const fs = require('node:fs');
+const exec = require('node:child_process').exec;
+const assert = require('node:assert');
 
 let adapter,
     that,
@@ -128,7 +128,7 @@ class MyAdapter {
         this._http = http;
         this._https = https;
         this._url = url;
-        this._child_process = require('child_process');
+        this._child_process = require('node:child_process');
 
         this.writeFile = this.c2p(fs.writeFile);
         this.readFile = this.c2p(fs.readFile);
