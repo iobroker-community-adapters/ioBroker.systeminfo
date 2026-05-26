@@ -113,7 +113,6 @@
     "compact": false,
     "connectionType": "local",
     "dataSource": "poll",
-    "materialize": false,
     "dependencies": [
       {
         "js-controller": ">=6.0.11"
