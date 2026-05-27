@@ -1,0 +1,135 @@
+{
+  "i18n": true,
+  "type": "panel",
+  "items": {
+    "_restartInfo": {
+      "type": "staticText",
+      "text": "On save adapter restarts with new config immediately",
+      "newLine": true,
+      "xs": 12,
+      "sm": 12,
+      "md": 12,
+      "lg": 12,
+      "xl": 12
+    },
+    "startup": {
+      "type": "text",
+      "label": "Startup commands",
+      "trim": false,
+      "minRows": 6,
+      "maxRows": 16,
+      "newLine": true,
+      "xs": 12,
+      "sm": 12,
+      "md": 12,
+      "lg": 12,
+      "xl": 12
+    },
+    "_itemsHeader": {
+      "type": "header",
+      "text": "Items setup",
+      "size": 4,
+      "newLine": true,
+      "xs": 12,
+      "sm": 12,
+      "md": 12,
+      "lg": 12,
+      "xl": 12
+    },
+    "items": {
+      "type": "table",
+      "newLine": true,
+      "xs": 12,
+      "sm": 12,
+      "md": 12,
+      "lg": 12,
+      "xl": 12,
+      "useCardFor": [
+        "xs",
+        "sm",
+        "md"
+      ],
+      "titleAttribute": "name",
+      "items": [
+        {
+          "type": "text",
+          "attr": "name",
+          "title": "Name(s)",
+          "width": "15%",
+          "trim": false
+        },
+        {
+          "type": "select",
+          "attr": "type",
+          "title": "Type",
+          "width": "7%",
+          "default": "",
+          "options": [
+            {
+              "label": "",
+              "value": ""
+            },
+            {
+              "label": "exec",
+              "value": "exec"
+            },
+            {
+              "label": "file",
+              "value": "file"
+            },
+            {
+              "label": "web",
+              "value": "web"
+            },
+            {
+              "label": "info",
+              "value": "info"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "attr": "source",
+          "title": "Source",
+          "width": "16%",
+          "trim": false
+        },
+        {
+          "type": "text",
+          "attr": "regexp",
+          "title": "RegExp/Filter",
+          "width": "19%",
+          "trim": false
+        },
+        {
+          "type": "text",
+          "attr": "conv",
+          "title": "Convert",
+          "width": "10%",
+          "trim": false
+        },
+        {
+          "type": "text",
+          "attr": "role",
+          "title": "Role/Type",
+          "width": "10%",
+          "trim": false
+        },
+        {
+          "type": "text",
+          "attr": "write",
+          "title": "WriteCommand",
+          "width": "13%",
+          "trim": false
+        },
+        {
+          "type": "text",
+          "attr": "sched",
+          "title": "Schedule",
+          "width": "10%",
+          "trim": false
+        }
+      ]
+    }
+  }
+}
