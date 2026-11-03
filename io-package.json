@@ -178,7 +178,10 @@
           "cancel"
         ]
       }
-    ]
+    ],
+    "adminUI": {
+      "config": "json"
+    }
   },
   "native": {
     "startup": "#\ngpio mode 1 output\n#rpi: echo none >/sys/class/leds/led0/trigger\necho none >/sys/class/leds/green_led/trigger",
